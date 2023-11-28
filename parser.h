@@ -14,6 +14,7 @@ typedef enum {
   DOT,
   VARIABLE,
   ERROR,
+  WHITESPACE,
 } tokens_t;
 
 enum AstNodeType {
@@ -22,10 +23,20 @@ enum AstNodeType {
     VAR,
 };
 
-struct LambdaExpression;
-struct Application;
-struct Variable;
+struct LambdaExpression {
+  char parameter;
+  struct AstNode *body;
+};
 
+struct Application {
+  struct AstNode *function;
+  struct AstNode *argument;
+};
+
+struct Variable {
+  tokens_t kind;
+  char name;
+};
 union AstNodeUnion {
     struct LambdaExpression* lambda_expr;
     struct Application* application;
@@ -37,8 +48,8 @@ struct AstNode {
     union AstNodeUnion node;
 };
 
-tokens_t parse_token(char *token);
-bool is_variable(char *token);
+tokens_t parse_token(char token);
+bool is_variable(char token);
 void p_print_token(tokens_t token);
 
 #endif
