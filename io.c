@@ -31,3 +31,8 @@ void delete_file(char *path) {
 void close_file(FILE *file) {
     fclose(file);
 }
+
+char next(FILE *file) {
+  int x = fgetc(file);
+  return (char) x;
+}

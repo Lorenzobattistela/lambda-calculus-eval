@@ -88,8 +88,9 @@ AstNode parse_expression(tokens_t token) {
   }
 }
 
-AstNode parse_lambda_expression() {
+AstNode parse_lambda_expression(FILE *in) {
   // get next token
+  
 }
 
 
