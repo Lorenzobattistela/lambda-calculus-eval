@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "io.h"
 
 typedef enum {
   L_PAREN,
@@ -34,7 +35,6 @@ struct Application {
 };
 
 struct Variable {
-  tokens_t kind;
   char name;
 };
 union AstNodeUnion {
@@ -51,5 +51,6 @@ struct AstNode {
 tokens_t parse_token(char token);
 bool is_variable(char token);
 void p_print_token(tokens_t token);
-
+void expect(char *expected, char received);
+struct AstNode *parse_expression(FILE *in, char token);
 #endif
