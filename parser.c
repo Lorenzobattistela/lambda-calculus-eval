@@ -62,28 +62,41 @@ bool is_variable(char token) {
   return true;
 }
 
-AstNode parse_expression(FILE *in, char token) {
+struct AstNode *parse_expression(FILE *in, char token) {
+  while(parse_token(token) == WHITESPACE) {
+    token = next(in);
+  }
+
   tokens_t scanned = parse_token(token);
+  
   if(scanned == LAMBDA) {
     char parameter = next(in);
-    tokens_t param = parse_token(token);
+    tokens_t param = parse_token(parameter);
     if(param != VARIABLE) {
       expect("a variable from a-z", token);
       return NULL;
     }
 
     char dot = next(in);
+    printf("%c\n", dot);
     tokens_t dot_t = parse_token(dot);
     if(dot_t != DOT) {
       expect(".", token);
-      return;
+      return NULL;
     }
 
-    AstNode body = parse_expression(in, next(in));
+    struct AstNode *body = parse_expression(in, next(in));
+
+    struct AstNode *res = (struct AstNode *)malloc(sizeof(struct AstNode));
+    res->type = LAMBDA_EXPR;
+    res->node.lambda_expr = (struct LambdaExpression *)malloc(sizeof(struct LambdaExpression));
+    res->node.lambda_expr->parameter = parameter;
+    res->node.lambda_expr->body = body;
+    return res;
   }
 
   else if(scanned == L_PAREN) {
-    AstNode expr = parse_expression(in, next(in));
+    struct AstNode *expr = parse_expression(in, next(in));
     // how would ik if the token is the correct one
     // cause when i reach this, it means the next token is ')', 
     // but how to expect this token?
@@ -91,16 +104,25 @@ AstNode parse_expression(FILE *in, char token) {
     // but i'll try getting the next one
     char r_paren = next(in);
     tokens_t r_paren_t = parse_token(r_paren);
-    if(r_paren_t != R_PARAM) {
+    if(r_paren_t != R_PAREN) {
       expect(")", r_paren);
-      return;
+      return NULL;
     }
     return expr;
   }
+
+  else if(scanned == VARIABLE) {
+    struct AstNode *variable = (struct AstNode *)malloc(sizeof(struct AstNode));
+    variable->type = VAR;
+    variable->node.variable = (struct Variable *)malloc(sizeof(struct Variable));
+    variable->node.variable->name = token;
+    return variable;
+  }
+  return NULL;
 }
 
 void expect(char *expected, char received) {
-  printf("ERROR: Expected %c , received %c \n", expected, received);
+  printf("ERROR: Expected %s , received %c \n", expected, received);
 }
 
 // now we build structs for each "type" / kind in a lambda exp and build a parser that consumes the tokens produced by the scanner
