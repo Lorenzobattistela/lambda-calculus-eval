@@ -97,11 +97,6 @@ struct AstNode *parse_expression(FILE *in, char token) {
 
   else if(scanned == L_PAREN) {
     struct AstNode *expr = parse_expression(in, next(in));
-    // how would ik if the token is the correct one
-    // cause when i reach this, it means the next token is ')', 
-    // but how to expect this token?
-    // the call to parse_exp would go N tokens before returning a AstNode
-    // but i'll try getting the next one
     char r_paren = next(in);
     tokens_t r_paren_t = parse_token(r_paren);
     if(r_paren_t != R_PAREN) {
@@ -124,27 +119,6 @@ struct AstNode *parse_expression(FILE *in, char token) {
 void expect(char *expected, char received) {
   printf("ERROR: Expected %s , received %c \n", expected, received);
 }
-
-// now we build structs for each "type" / kind in a lambda exp and build a parser that consumes the tokens produced by the scanner
-// and that puts them into an AST 
-
-// AstNode parse_expression(tokens_t token) {
-  // if(token == LAMBDA) {
-    // return parse_lambda_expression();
-  // } 
-  // else if(token == LPAREN) {
-    // return parse_application();
-  // }
-  // else if(token == VARIABLE) {
-    // return parse_variable();
-  // }
- //}
-
-// struct AstNode parse_lambda_expression(FILE *in) {
-  // get next token
-  
-//}
-
 
 // Expression ::= LambdaExpression | Application | Variable
 // LambdaExpression ::= "@" Identifier "." Expression
