@@ -50,6 +50,7 @@ struct AstNode {
 
 tokens_t parse_token(char token);
 bool is_variable(char token);
+void p_print_astNode_type(struct AstNode *n);
 void p_print_token(tokens_t token);
 void expect(char *expected, char received);
 struct AstNode *parse_expression(FILE *in, char token);
