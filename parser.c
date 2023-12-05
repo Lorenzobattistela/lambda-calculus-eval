@@ -54,6 +54,22 @@ void p_print_token(tokens_t token) {
   }
 }
 
+void p_print_astNode_type(struct AstNode *n) {
+  switch(n->type) {
+    case 0:
+      printf("AstNode Type: LAMBDA_EXPR\n");
+      break;
+    
+    case 1:
+      printf("AstNode Type: APPLICATION\n");
+      break;
+
+    case 2:
+      printf("AstNode Type: VAR\n");
+      break;
+  }
+}
+
 bool is_variable(char token) {
   int cmp = (int)token;
   if(cmp < 97 || cmp > 122) {
@@ -78,7 +94,6 @@ struct AstNode *parse_expression(FILE *in, char token) {
     }
 
     char dot = next(in);
-    printf("%c\n", dot);
     tokens_t dot_t = parse_token(dot);
     if(dot_t != DOT) {
       expect(".", token);
@@ -97,16 +112,29 @@ struct AstNode *parse_expression(FILE *in, char token) {
 
   else if(scanned == L_PAREN) {
     struct AstNode *expr = parse_expression(in, next(in));
-    char r_paren = next(in);
-    tokens_t r_paren_t = parse_token(r_paren);
-    if(r_paren_t != R_PAREN) {
-      expect(")", r_paren);
+    p_print_astNode_type(expr);
+    char next_t = next(in);
+    // if it is a whitespace, it is a function application
+    tokens_t next_token = parse_token(next_t);
+    if(next_token == WHITESPACE && expr->type == VAR) {
+      struct AstNode *expr_2 = parse_expression(in, next(in));
+      struct AstNode *application = (struct AstNode *)malloc(sizeof(struct AstNode));
+      application->type = APPLICATION;
+      application->node.application = (struct Application *)malloc(sizeof(struct Application));
+      application->node.application->function = expr;
+      application->node.application->argument = expr_2;
+      return application;
+    }
+      
+    if(next_token != R_PAREN) {
+      expect(")", next_token);
       return NULL;
     }
     return expr;
   }
 
   else if(scanned == VARIABLE) {
+    printf("TOKEN IS VARIABLE: %c\n", token);
     struct AstNode *variable = (struct AstNode *)malloc(sizeof(struct AstNode));
     variable->type = VAR;
     variable->node.variable = (struct Variable *)malloc(sizeof(struct Variable));

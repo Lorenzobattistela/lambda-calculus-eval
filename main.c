@@ -5,7 +5,6 @@
 void print_ast(struct AstNode *node);
 
 int main(void) {
-  char token;
   FILE *in = get_file("expr.lambda", "r");
   
   struct AstNode *res = parse_expression(in, next(in)); 
@@ -16,7 +15,6 @@ int main(void) {
 
 void print_ast(struct AstNode *node) {
   if(node == NULL) {
-    printf("NULL\n");
     return;
   }
 
