@@ -134,7 +134,6 @@ struct AstNode *parse_expression(FILE *in, char token) {
   }
 
   else if(scanned == VARIABLE) {
-    printf("TOKEN IS VARIABLE: %c\n", token);
     struct AstNode *variable = (struct AstNode *)malloc(sizeof(struct AstNode));
     variable->type = VAR;
     variable->node.variable = (struct Variable *)malloc(sizeof(struct Variable));
@@ -145,7 +144,8 @@ struct AstNode *parse_expression(FILE *in, char token) {
 }
 
 void expect(char *expected, char received) {
-  printf("ERROR: Expected %s , received %c \n", expected, received);
+  printf("Syntax Error: Expected %s , received %c \n", expected, received);
+  exit(1);
 }
 
 // Expression ::= LambdaExpression | Application | Variable
