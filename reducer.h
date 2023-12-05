@@ -3,4 +3,6 @@
 
 #include "parser.h"
 
+struct AstNode *reduce_ast(struct AstNode *n);
+
 #endif
