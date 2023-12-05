@@ -112,7 +112,6 @@ struct AstNode *parse_expression(FILE *in, char token) {
 
   else if(scanned == L_PAREN) {
     struct AstNode *expr = parse_expression(in, next(in));
-    p_print_astNode_type(expr);
     char next_t = next(in);
     // if it is a whitespace, it is a function application
     tokens_t next_token = parse_token(next_t);
