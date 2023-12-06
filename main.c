@@ -19,10 +19,24 @@ int main(void) {
   struct AstNode *body = (struct AstNode *)malloc(sizeof(struct AstNode));
   body->type = VAR;
   body->node.variable = (struct Variable *)malloc(sizeof(struct Variable));
-  body->node.variable->name = 'd';
+  body->node.variable->name = 'c';
   res_2->node.lambda_expr->body = body;
+  print_ast(deepcopy(res_2));
 
-  print_ast(res_2);
+  printf("\nTesting substitution: \n");
+  struct AstNode *substitution = substitute(res_2, 'c', res);
+  print_ast(substitution);
+
+  FILE *in_2 = get_file("expr.lambda2", "r");
+  struct AstNode *app = parse_expression(in_2, next(in_2));
+  printf("\nSECOND FILE PARSING: \n");
+  print_ast(app);
+  printf("\nTESTING SUBSTITUTION ON SECOND FILE: \n");
+  struct AstNode *func_app = substitute(app, 'x', res);
+  print_ast(func_app);
+
+  close_file(in);
+  close_file(in_2);
   return 0;
 }
 
