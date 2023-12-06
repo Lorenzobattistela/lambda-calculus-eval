@@ -7,7 +7,6 @@ void print_ast(struct AstNode *node);
 
 int main(void) {
   FILE *in = get_file("expr.lambda", "r");
-  
   struct AstNode *res = parse_expression(in, next(in)); 
   print_ast(res);
   printf("\nTesting deepcopy: \n");
@@ -33,6 +32,10 @@ int main(void) {
   print_ast(app);
   printf("\nTESTING SUBSTITUTION ON SECOND FILE: \n");
   struct AstNode *func_app = substitute(app, 'x', res);
+  print_ast(func_app);
+
+  replace(func_app, 'x', 'g');
+  printf("\n");
   print_ast(func_app);
 
   close_file(in);
