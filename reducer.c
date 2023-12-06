@@ -34,6 +34,7 @@ struct AstNode *reduce_ast(struct AstNode *n) {
     }
     return n;
   }
+  // base case leaf node or variable, nothing to reduce
   return n;
 }
 
@@ -42,19 +43,18 @@ struct AstNode *substitute(struct AstNode *expression, char variable, struct Ast
     if (expression->node.variable->name == variable) {
       return deepcopy(replacement);
     }
-    else return expression;
+    return expression;
   }
 
   else if(expression->type == LAMBDA_EXPR) {
     if(expression->node.lambda_expr->parameter == variable) {
       return expression;
-    }
-    else {
-      expression->node.lambda_expr->body = substitute(
-        expression->node.lambda_expr->body, variable, replacement
-      );
-      return expression;
-    }
+    } 
+    expression->node.lambda_expr->body = substitute(
+      expression->node.lambda_expr->body, variable, replacement
+    );
+    return expression;
+  
   }
 
   else if(expression->type == APPLICATION) {
