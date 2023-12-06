@@ -1,4 +1,31 @@
 #include "reducer.h"
+void p_print_ast(struct AstNode *node) {
+  if(node == NULL) {
+    return;
+  }
+
+  switch(node->type) {
+    case LAMBDA_EXPR:
+        printf("(LAMBDA %c ", node->node.lambda_expr->parameter);
+        p_print_ast(node->node.lambda_expr->body);
+        printf(") ");
+        break;
+
+    case APPLICATION:
+        printf("(APP ");
+        p_print_ast(node->node.application->function);
+        p_print_ast(node->node.application->argument);
+        printf(") ");
+        break;
+
+    case VAR:
+        printf("(VAR %c) ", node->node.variable->name);
+        break;
+
+    default:
+        printf("(UNKNOWN) ");
+  }
+}
 
 // Alpha conversion -> if we have two lambda expressions with same variable name, change one of
 // them to create a new variable: (@x.xx)(@x.x) -> (@x.xx)(@y.y) or -> (@x.xx)(@x'.x')
@@ -47,13 +74,12 @@ struct AstNode *substitute(struct AstNode *expression, char variable, struct Ast
   }
 
   else if(expression->type == LAMBDA_EXPR) {
-    if(expression->node.lambda_expr->parameter == variable) {
-      return expression;
-    } 
+    // ex: @x.(x y) -> if variable is equal to @x (x), we should then replace 
+    // all x in the body of expression with replacement
     expression->node.lambda_expr->body = substitute(
       expression->node.lambda_expr->body, variable, replacement
     );
-    return expression;
+    return expression->node.lambda_expr->body;
   
   }
 
