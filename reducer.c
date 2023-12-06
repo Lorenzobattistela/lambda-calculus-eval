@@ -1,4 +1,7 @@
 #include "reducer.h"
+
+bool used_variables[SIZE] = { false };
+
 void p_print_ast(struct AstNode *node) {
   if(node == NULL) {
     return;
@@ -36,9 +39,55 @@ void p_print_ast(struct AstNode *node) {
 // which means @x.(f x) = f if f does not make use of x
 // @x.(@y.yy)x) is equivalent to (@y.yy) because f does not make use of x.
 
+void set_variable(char variable) {
+  used_variables[(int)variable] = true;
+}
+
+char new_variable() {
+  for(int i = 0; i < SIZE; i++) {
+    if(!used_variables[i]) {
+      return (char)i;
+    }
+  }
+  printf("No more available variables to o alpha conversion. Quitting");
+  exit(1);
+}
+
+bool is_used(char variable) {
+  return used_variables[(int)variable];
+}
+
+void replace(struct AstNode *n, char old, char new_name) {
+  if(n->type == LAMBDA_EXPR) {
+    if(n->node.lambda_expr->parameter == old) {
+      n->node.lambda_expr->parameter = new_name;
+    }
+    replace(n->node.lambda_expr->body, old, new_name);
+  }
+
+  else if(n->type == APPLICATION) {
+    replace(n->node.application->function, old, new_name);
+    replace(n->node.application->argument, old, new_name);
+  }
+
+  else if(n->type == VAR) {
+    if(n->node.variable->name == old) {
+      n->node.variable->name = new_name;
+    }
+  }
+}
 
 struct AstNode *reduce_ast(struct AstNode *n) {
   if(n->type == LAMBDA_EXPR) {
+    // if a variable is already used and we encounter it on a lambda_expr, we should
+    // rename it and replace it across the body of the lamba expr 
+
+    if(is_used(n->node.lambda_expr->parameter)) {
+      char new = new_variable();
+      replace(n, n->node.lambda_expr->parameter, new);
+      set_variable(new);
+    }
+
     // apply reduction rules
 
     // recursively reduce the body
