@@ -15,7 +15,7 @@ struct AstNode *reduce_ast(struct AstNode *n) {
     // apply reduction rules
 
     // recursively reduce the body
-    n->node.lamba_expr->body = reduce_ast(n->node.lambda_expr->body);
+    n->node.lambda_expr->body = reduce_ast(n->node.lambda_expr->body);
     return n;
   }
 
@@ -25,11 +25,11 @@ struct AstNode *reduce_ast(struct AstNode *n) {
     n->node.application->function = reduce_ast(n->node.application->function);
     n->node.application->argument = reduce_ast(n->node.application->argument);
 
-    if(n->node.application->function->node.type == LAMBDA_EXPR) {
+    if(n->node.application->function->type == LAMBDA_EXPR) {
       return substitute(
         n->node.application->function->node.lambda_expr->body, 
-        n->node.application->function->node.lamba_expr->parameter, 
-        n->node.lambda_expr->argument
+        n->node.application->function->node.lambda_expr->parameter, 
+        n->node.application->argument
       );
     }
     return n;
@@ -46,12 +46,12 @@ struct AstNode *substitute(struct AstNode *expression, char variable, struct Ast
   }
 
   else if(expression->type == LAMBDA_EXPR) {
-    if(expression->node.lamba_expr->parameter == variable) {
+    if(expression->node.lambda_expr->parameter == variable) {
       return expression;
     }
     else {
       expression->node.lambda_expr->body = substitute(
-        expression->node.lamba_expr->body, variable, replacement
+        expression->node.lambda_expr->body, variable, replacement
       );
       return expression;
     }
@@ -67,4 +67,51 @@ struct AstNode *substitute(struct AstNode *expression, char variable, struct Ast
     return expression;
   }
   return expression;
+}
+
+struct AstNode *deepcopy(struct AstNode *n) {
+  if(n->type == VAR) {
+    return deepcopy_var(n->node.variable->name);
+  }
+
+  else if(n->type == LAMBDA_EXPR) {
+    return deepcopy_lambda_expr(
+      n->node.lambda_expr->parameter, 
+      n->node.lambda_expr->body
+    );
+  }
+
+  else if(n->type == APPLICATION) {
+    return deepcopy_application(
+      n->node.application->function,
+      n->node.application->argument
+    );
+  }
+  return NULL;
+}
+
+struct AstNode *deepcopy_application(struct AstNode *function, struct AstNode *argument) {
+  struct AstNode *application = (struct AstNode *)malloc(sizeof(struct AstNode));
+  application->type = APPLICATION;
+  application->node.application = (struct Application *)malloc(sizeof(struct Application));
+  application->node.application->function = deepcopy(function);
+  application->node.application->argument = deepcopy(argument);
+  return application;
+}
+
+struct AstNode *deepcopy_lambda_expr(char parameter, struct AstNode *body) {
+  struct AstNode *lambda = (struct AstNode *)malloc(sizeof(struct AstNode));
+  lambda->type = LAMBDA_EXPR;
+  lambda->node.lambda_expr = (struct LambdaExpression *)malloc(sizeof(struct LambdaExpression));
+  lambda->node.lambda_expr->parameter = parameter;
+  lambda->node.lambda_expr->body = deepcopy(body);
+  return lambda;
+}
+
+struct AstNode *deepcopy_var(char name) {
+  struct AstNode *variable = (struct AstNode *)malloc(sizeof(struct AstNode));
+  variable->type = VAR;
+  variable->node.variable = (struct Variable *)malloc(sizeof(struct Variable));
+  variable->node.variable->name = name;
+  return variable;
 }
