@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -g
-SRC = parser.c io.c main.c
+SRC = parser.c reducer.c io.c main.c
 OBJS = $(SRC:.c=.o)
 EXECUTABLE = converter
 
