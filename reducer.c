@@ -75,10 +75,14 @@ struct AstNode *substitute(struct AstNode *expression, char variable, struct Ast
 
   else if(expression->type == LAMBDA_EXPR) {
     // ex: @x.(x y) -> if variable is equal to @x (x), we should then replace 
-    // all x in the body of expression with replacement
+    // all x in the body of expression with replacement 
     expression->node.lambda_expr->body = substitute(
       expression->node.lambda_expr->body, variable, replacement
     );
+    if(expression->node.lambda_expr->parameter != variable) {
+      // if @x.(x y) and we're substituting for y, for example, we do not want to remove the lambda term
+      return expression;
+    }
     return expression->node.lambda_expr->body;
   
   }
