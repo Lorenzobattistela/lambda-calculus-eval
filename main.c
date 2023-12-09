@@ -38,6 +38,15 @@ int main(void) {
   printf("\n");
   print_ast(func_app);
 
+  printf("\n testing AST reduction:\n");
+  FILE *third = get_file("expr.lambda3", "r");
+  struct AstNode *ast = parse_expression(third, next(third));
+  printf("Parsed AST for third expr: \n");
+  print_ast(ast);
+  printf("\nReducted ast:\n");
+  struct AstNode *reduced = reduce_ast(ast);
+  print_ast(reduced);
+
   close_file(in);
   close_file(in_2);
   return 0;
