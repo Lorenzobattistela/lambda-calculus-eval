@@ -82,7 +82,6 @@ struct AstNode *parse_expression(FILE *in, char token) {
   while(parse_token(token) == WHITESPACE) {
     token = next(in);
   }
-
   tokens_t scanned = parse_token(token);
   
   if(scanned == LAMBDA) {
@@ -99,7 +98,7 @@ struct AstNode *parse_expression(FILE *in, char token) {
       expect(".", token);
       return NULL;
     }
-
+    
     struct AstNode *body = parse_expression(in, next(in));
 
     struct AstNode *res = (struct AstNode *)malloc(sizeof(struct AstNode));
@@ -115,13 +114,18 @@ struct AstNode *parse_expression(FILE *in, char token) {
     char next_t = next(in);
     // if it is a whitespace, it is a function application
     tokens_t next_token = parse_token(next_t);
-    if(next_token == WHITESPACE && expr->type == VAR) {
+    if(next_token == WHITESPACE) {
       struct AstNode *expr_2 = parse_expression(in, next(in));
       struct AstNode *application = (struct AstNode *)malloc(sizeof(struct AstNode));
       application->type = APPLICATION;
       application->node.application = (struct Application *)malloc(sizeof(struct Application));
       application->node.application->function = expr;
       application->node.application->argument = expr_2;
+
+      char right_paren = next(in);
+      if(parse_token(right_paren) != R_PAREN) {
+        expect(")", right_paren);
+      }
       return application;
     }
       
