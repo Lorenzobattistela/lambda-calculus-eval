@@ -88,23 +88,13 @@ struct AstNode *reduce_ast(struct AstNode *n) {
       set_variable(new);
     }
 
-    // apply reduction rules
-    if(n->node.lambda_expr->body->type == APPLICATION) {
-      return substitute(
-        n->node.lambda_expr->body->node.application->function,
-        n->node.lambda_expr->body->node.application->function->node.lambda_expr->parameter,
-        n->node.lambda_expr->body->node.application->argument
-      );
-    }
-
-    // recursively reduce the body
+      // recursively reduce the body
     n->node.lambda_expr->body = reduce_ast(n->node.lambda_expr->body);
     return n;
   }
 
   else if(n->type == APPLICATION) {
     // apply reduce rules
-
     n->node.application->function = reduce_ast(n->node.application->function);
     n->node.application->argument = reduce_ast(n->node.application->argument);
 
