@@ -51,6 +51,17 @@ int main(void) {
 
   close_file(in);
   close_file(in_2);
+  close_file(third);
+
+  // changeable expr:
+  FILE *fourth = get_file("expr.lambda4", "r");
+  printf("\nReading fourth expression: \n");
+  struct AstNode *four = parse_expression(fourth, next(fourth));
+  print_ast(four);
+  printf("\n\nReducing fourth expression: \n");
+  struct AstNode *fourth_reduced = reduce_ast(four);
+  print_ast(fourth_reduced);
+  printf("\n");
   return 0;
 }
 
