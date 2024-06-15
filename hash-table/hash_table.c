@@ -73,6 +73,9 @@ void destroyHashTable(HashTable *hashTable) {
     while (current != NULL) {
       HashNode *temp = current;
       current = current->next;
+      if (temp->value != NULL) {
+        free(temp->value);
+      }
       free(temp->key);
       free(temp);
     }
