@@ -1,5 +1,5 @@
 #include "parser.h"
-#include "common.h"
+#include "io.h"
 
 tokens_t parse_token(char token) {
   if (token == '(') {
@@ -14,6 +14,10 @@ tokens_t parse_token(char token) {
     return VARIABLE;
   } else if (token == ' ') {
     return WHITESPACE;
+  } else if (token == '\n') {
+    return NEWLINE;
+  } else if (token == '=') {
+    return EQ;
   }
   return ERROR;
 }
@@ -44,6 +48,14 @@ void p_print_token(tokens_t token) {
     printf("WHITESPACE ");
     return;
 
+  case NEWLINE:
+    printf("NEWLINE ");
+    return;
+
+  case EQ:
+    printf("= ");
+    return;
+
   default:
     printf("ERROR ");
     return;
@@ -62,6 +74,10 @@ void p_print_astNode_type(AstNode *n) {
 
   case 2:
     printf("AstNode Type: VAR\n");
+    break;
+
+  case DEFINITION:
+    printf("AstNode Type: DEFINITION\n");
     break;
   }
 }
@@ -170,6 +186,10 @@ AstNode *parse_expression(FILE *in, char token) {
 
   else if (scanned == VARIABLE) {
     char *var_name = parse_variable(in, token);
+
+    if (strcmp(var_name, "def") == 0) {
+      return parse_definition(in);
+    }
     AstNode *variable = (AstNode *)malloc(sizeof(AstNode));
     HANDLE_NULL(variable);
     variable->type = VAR;
@@ -178,6 +198,51 @@ AstNode *parse_expression(FILE *in, char token) {
     return variable;
   }
   return NULL;
+}
+
+AstNode *parse_definition(FILE *in) {
+  char next_token = next(in);
+  tokens_t n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  next_token = next(in);
+  n = parse_token(next_token);
+
+  if (n != VARIABLE) {
+    expect("a variable", next_token);
+    exit(EXIT_FAILURE);
+  }
+  char *def_name = parse_variable(in, next_token);
+  printf("def name is: %s\n", def_name);
+
+  next_token = next(in);
+  n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  next_token = next(in);
+  n = parse_token(next_token);
+  if (n != EQ) {
+    expect("=", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  next_token = next(in);
+  n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  AstNode *definition = parse_expression(in, next(in));
+  print_ast(definition);
+
+  exit(1);
 }
 
 char *parse_variable(FILE *in, tokens_t token) {
