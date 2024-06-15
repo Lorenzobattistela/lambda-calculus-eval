@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "common.h"
 
 tokens_t parse_token(char token) {
   if (token == '(') {
@@ -72,7 +73,7 @@ void print_ast(AstNode *node) {
 
   switch (node->type) {
   case LAMBDA_EXPR:
-    printf("(LAMBDA %c ", node->node.lambda_expr->parameter);
+    printf("(LAMBDA %s ", node->node.lambda_expr->parameter);
     print_ast(node->node.lambda_expr->body);
     printf(") ");
     break;
@@ -85,7 +86,7 @@ void print_ast(AstNode *node) {
     break;
 
   case VAR:
-    printf("(VAR %c) ", node->node.variable->name);
+    printf("(VAR %s) ", node->node.variable->name);
     break;
 
   default:
@@ -101,6 +102,12 @@ bool is_variable(char token) {
   return true;
 }
 
+char peek(FILE *in) {
+  char c = fgetc(in);
+  ungetc(c, in);
+  return c;
+}
+
 AstNode *parse_expression(FILE *in, char token) {
   while (parse_token(token) == WHITESPACE) {
     token = next(in);
@@ -111,10 +118,10 @@ AstNode *parse_expression(FILE *in, char token) {
     char parameter = next(in);
     tokens_t param = parse_token(parameter);
     if (param != VARIABLE) {
-      expect("a variable from a-z", token);
       return NULL;
     }
 
+    char *var = parse_variable(in, parameter);
     char dot = next(in);
     tokens_t dot_t = parse_token(dot);
     if (dot_t != DOT) {
@@ -128,7 +135,7 @@ AstNode *parse_expression(FILE *in, char token) {
     res->type = LAMBDA_EXPR;
     res->node.lambda_expr =
         (LambdaExpression *)malloc(sizeof(LambdaExpression));
-    res->node.lambda_expr->parameter = parameter;
+    res->node.lambda_expr->parameter = var;
     res->node.lambda_expr->body = body;
     return res;
   }
@@ -162,18 +169,69 @@ AstNode *parse_expression(FILE *in, char token) {
   }
 
   else if (scanned == VARIABLE) {
+    char *var_name = parse_variable(in, token);
     AstNode *variable = (AstNode *)malloc(sizeof(AstNode));
+    HANDLE_NULL(variable);
     variable->type = VAR;
     variable->node.variable = (Variable *)malloc(sizeof(Variable));
-    variable->node.variable->name = token;
+    variable->node.variable->name = var_name;
     return variable;
   }
   return NULL;
 }
 
+char *parse_variable(FILE *in, tokens_t token) {
+  char *variable_name = malloc(256 * sizeof(char));
+  int index = 0;
+  variable_name[index] = token;
+  index++;
+
+  while (is_variable(peek(in))) {
+    variable_name[index] = next(in);
+    index++;
+  }
+  return variable_name;
+}
+
 void expect(char *expected, char received) {
   printf("Syntax Error: Expected %s , received %c \n", expected, received);
   exit(1);
+}
+
+void free_ast(AstNode *node) {
+  if (node == NULL) {
+    return;
+  }
+
+  switch (node->type) {
+  case LAMBDA_EXPR:
+    if (node->node.lambda_expr != NULL) {
+      free(node->node.lambda_expr->parameter);
+      free_ast(node->node.lambda_expr->body);
+      free(node->node.lambda_expr);
+    }
+    break;
+
+  case APPLICATION:
+    if (node->node.application != NULL) {
+      free_ast(node->node.application->function);
+      free_ast(node->node.application->argument);
+      free(node->node.application);
+    }
+    break;
+
+  case VAR:
+    if (node->node.variable != NULL) {
+      free(node->node.variable->name);
+      free(node->node.variable);
+    }
+    break;
+
+  default:
+    break;
+  }
+
+  free(node);
 }
 
 // Expression ::= LambdaExpression | Application | Variable

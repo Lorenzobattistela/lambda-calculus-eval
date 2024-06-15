@@ -27,7 +27,7 @@ typedef enum {
 } AstNodeType;
 
 typedef struct {
-  char parameter;
+  char *parameter;
   AstNode *body;
 } LambdaExpression;
 
@@ -37,7 +37,7 @@ typedef struct {
 } Application;
 
 typedef struct {
-  char name;
+  char *name;
 } Variable;
 
 typedef union {
@@ -52,10 +52,13 @@ struct AstNode {
 };
 
 tokens_t parse_token(char token);
+char *parse_variable(FILE *in, tokens_t token);
 bool is_variable(char token);
 void p_print_astNode_type(AstNode *n);
 void p_print_token(tokens_t token);
 void print_ast(AstNode *node);
 void expect(char *expected, char received);
+char peek(FILE *in);
 AstNode *parse_expression(FILE *in, char token);
+void free_ast(AstNode *node);
 #endif
