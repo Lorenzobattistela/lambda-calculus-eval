@@ -1,1 +1,6 @@
-@x.x
+def a = @x.x 
+
+def b = @y.y
+
+(a b)
+

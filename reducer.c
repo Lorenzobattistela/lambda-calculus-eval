@@ -1,4 +1,6 @@
 #include "reducer.h"
+#include "common.h"
+#include "hash-table/hash_table.h"
 
 bool used_variables[SIZE] = {false};
 
@@ -20,11 +22,29 @@ char new_variable() {
       return (char)i;
     }
   }
-  printf("No more available variables to o alpha conversion. Quitting");
+  printf("No more available variables to do alpha conversion. Quitting");
   exit(1);
 }
 
 bool is_used(char *variable) { return false; }
+
+// including a step to replace definitions with its values
+void expand_definitions(HashTable *table, AstNode *n) {
+  if (n->type == LAMBDA_EXPR) {
+    expand_definitions(table, n->node.lambda_expr->body);
+  } else if (n->type == APPLICATION) {
+    expand_definitions(table, n->node.application->function);
+    expand_definitions(table, n->node.application->argument);
+  } else if (n->type == DEFINITION) {
+    char *def_name = n->node.variable->name;
+    AstNode *expanded_def = search(table, def_name);
+    HANDLE_NULL(expanded_def);
+    n->type = expanded_def->type;
+    n->node.variable = expanded_def->node.variable;
+    n->node.lambda_expr = expanded_def->node.lambda_expr;
+    n->node.application = expanded_def->node.application;
+  }
+}
 
 void replace(AstNode *n, char *old, char *new_name) {
   if (n->type == LAMBDA_EXPR) {
@@ -40,7 +60,7 @@ void replace(AstNode *n, char *old, char *new_name) {
   }
 
   else if (n->type == VAR) {
-    if (n->node.variable->name == old) {
+    if (strcmp(n->node.variable->name, old)) {
       n->node.variable->name = new_name;
     }
   }
@@ -77,6 +97,7 @@ AstNode *reduce_ast(AstNode *n) {
     }
     return n;
   }
+
   // base case leaf node or variable, nothing to reduce
   return n;
 }

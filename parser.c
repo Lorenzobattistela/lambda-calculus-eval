@@ -1,5 +1,7 @@
 #include "parser.h"
 #include "common.h"
+#include "hash-table/hash_table.h"
+#include "io.h"
 
 tokens_t parse_token(char token) {
   if (token == '(') {
@@ -14,6 +16,10 @@ tokens_t parse_token(char token) {
     return VARIABLE;
   } else if (token == ' ') {
     return WHITESPACE;
+  } else if (token == '\n') {
+    return NEWLINE;
+  } else if (token == '=') {
+    return EQ;
   }
   return ERROR;
 }
@@ -44,6 +50,14 @@ void p_print_token(tokens_t token) {
     printf("WHITESPACE ");
     return;
 
+  case NEWLINE:
+    printf("NEWLINE ");
+    return;
+
+  case EQ:
+    printf("= ");
+    return;
+
   default:
     printf("ERROR ");
     return;
@@ -62,6 +76,10 @@ void p_print_astNode_type(AstNode *n) {
 
   case 2:
     printf("AstNode Type: VAR\n");
+    break;
+
+  case DEFINITION:
+    printf("AstNode Type: DEFINITION\n");
     break;
   }
 }
@@ -89,6 +107,10 @@ void print_ast(AstNode *node) {
     printf("(VAR %s) ", node->node.variable->name);
     break;
 
+  case DEFINITION:
+    printf("(DEFINITION %s) ", node->node.variable->name);
+    break;
+
   default:
     printf("(UNKNOWN) ");
   }
@@ -108,8 +130,8 @@ char peek(FILE *in) {
   return c;
 }
 
-AstNode *parse_expression(FILE *in, char token) {
-  while (parse_token(token) == WHITESPACE) {
+AstNode *parse_expression(HashTable *table, FILE *in, char token) {
+  while (parse_token(token) == WHITESPACE || parse_token(token) == NEWLINE) {
     token = next(in);
   }
   tokens_t scanned = parse_token(token);
@@ -129,7 +151,7 @@ AstNode *parse_expression(FILE *in, char token) {
       return NULL;
     }
 
-    AstNode *body = parse_expression(in, next(in));
+    AstNode *body = parse_expression(table, in, next(in));
 
     AstNode *res = (AstNode *)malloc(sizeof(AstNode));
     res->type = LAMBDA_EXPR;
@@ -141,12 +163,12 @@ AstNode *parse_expression(FILE *in, char token) {
   }
 
   else if (scanned == L_PAREN) {
-    AstNode *expr = parse_expression(in, next(in));
+    AstNode *expr = parse_expression(table, in, next(in));
     char next_t = next(in);
     // if it is a whitespace, it is a function application
     tokens_t next_token = parse_token(next_t);
     if (next_token == WHITESPACE) {
-      AstNode *expr_2 = parse_expression(in, next(in));
+      AstNode *expr_2 = parse_expression(table, in, next(in));
       AstNode *application = (AstNode *)malloc(sizeof(AstNode));
       application->type = APPLICATION;
       application->node.application =
@@ -170,14 +192,69 @@ AstNode *parse_expression(FILE *in, char token) {
 
   else if (scanned == VARIABLE) {
     char *var_name = parse_variable(in, token);
+
+    if (strcmp(var_name, "def") == 0) {
+      parse_definition(table, in);
+      if (peek(in) != EOF) {
+        return parse_expression(table, in, next(in));
+      }
+      return NULL;
+    }
     AstNode *variable = (AstNode *)malloc(sizeof(AstNode));
+
     HANDLE_NULL(variable);
     variable->type = VAR;
+    if (search(table, var_name) != NULL) {
+      variable->type = DEFINITION;
+    }
     variable->node.variable = (Variable *)malloc(sizeof(Variable));
     variable->node.variable->name = var_name;
     return variable;
   }
   return NULL;
+}
+
+void parse_definition(HashTable *table, FILE *in) {
+  char next_token = next(in);
+  tokens_t n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  next_token = next(in);
+  n = parse_token(next_token);
+
+  if (n != VARIABLE) {
+    expect("a variable", next_token);
+    exit(EXIT_FAILURE);
+  }
+  char *def_name = parse_variable(in, next_token);
+  printf("def name is: %s\n", def_name);
+
+  next_token = next(in);
+  n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  next_token = next(in);
+  n = parse_token(next_token);
+  if (n != EQ) {
+    expect("=", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  next_token = next(in);
+  n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  AstNode *definition = parse_expression(table, in, next(in));
+  insert(table, def_name, definition);
 }
 
 char *parse_variable(FILE *in, tokens_t token) {
