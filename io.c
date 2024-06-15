@@ -28,6 +28,7 @@ void write_to_file(FILE *file, char *content) {
             __LINE__);
     exit(EXIT_FAILURE);
   }
+  rewind(file);
 }
 
 void delete_file(char *path) {
