@@ -27,15 +27,15 @@ char *get_str_input(char *input_msg, char *error_msg) {
   return input;
 }
 
-FILE *get_lambda_expr_input() {
+char *get_lambda_expr_input() {
   char *lambda_expr =
       get_str_input("Enter the lambda expression: ",
                     "ERROR: failed to read the lambda expression.");
 
   FILE *file = create_file(TMP_PATH);
   write_to_file(file, lambda_expr);
-  delete_file(TMP_PATH);
-  return file;
+  close_file(file);
+  return TMP_PATH;
 }
 
 char *get_file_path_input() {
@@ -59,7 +59,8 @@ FILE *cli() {
       ;
     switch (option) {
     case 1: {
-      f = get_lambda_expr_input();
+      char *path = get_lambda_expr_input();
+      f = get_file(path, "r");
       valid_option = true;
       break;
     }
@@ -80,6 +81,7 @@ FILE *cli() {
 
 int main(void) {
   FILE *in = cli();
+  HANDLE_NULL(in);
   AstNode *res = parse_expression(in, next(in));
   print_ast(res);
   close_file(in);
