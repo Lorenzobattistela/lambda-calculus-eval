@@ -65,6 +65,34 @@ void p_print_astNode_type(AstNode *n) {
   }
 }
 
+void print_ast(AstNode *node) {
+  if (node == NULL) {
+    return;
+  }
+
+  switch (node->type) {
+  case LAMBDA_EXPR:
+    printf("(LAMBDA %c ", node->node.lambda_expr->parameter);
+    print_ast(node->node.lambda_expr->body);
+    printf(") ");
+    break;
+
+  case APPLICATION:
+    printf("(APP ");
+    print_ast(node->node.application->function);
+    print_ast(node->node.application->argument);
+    printf(") ");
+    break;
+
+  case VAR:
+    printf("(VAR %c) ", node->node.variable->name);
+    break;
+
+  default:
+    printf("(UNKNOWN) ");
+  }
+}
+
 bool is_variable(char token) {
   int cmp = (int)token;
   if (cmp < 97 || cmp > 122) {
