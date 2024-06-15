@@ -7,15 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct AstNode *reduce_ast(struct AstNode *n);
-struct AstNode *deepcopy(struct AstNode *n);
-struct AstNode *deepcopy_application(struct AstNode *function,
-                                     struct AstNode *argument);
-struct AstNode *deepcopy_lambda_expr(char *parameter, struct AstNode *body);
-struct AstNode *deepcopy_var(char *name);
-struct AstNode *substitute(struct AstNode *expression, char *variable,
-                           struct AstNode *replacement);
-void replace(struct AstNode *n, char *old, char *new_name);
-void p_print_ast(struct AstNode *node);
+AstNode *reduce_ast(AstNode *n);
+void expand_definitions(HashTable *table, AstNode *n);
+AstNode *deepcopy(AstNode *n);
+AstNode *deepcopy_application(AstNode *function, AstNode *argument);
+AstNode *deepcopy_lambda_expr(char *parameter, AstNode *body);
+AstNode *deepcopy_var(char *name);
+AstNode *substitute(AstNode *expression, char *variable, AstNode *replacement);
+void replace(AstNode *n, char *old, char *new_name);
+void p_print_ast(AstNode *node);
 
 #endif
