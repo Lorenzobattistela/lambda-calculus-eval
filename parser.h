@@ -2,6 +2,7 @@
 #define PARSER_H
 
 #include "common.h"
+#include "hash-table/hash_table.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -15,8 +16,8 @@ void p_print_token(tokens_t token);
 void print_ast(AstNode *node);
 void expect(char *expected, char received);
 char peek(FILE *in);
-AstNode *parse_expression(FILE *in, char token);
-AstNode *parse_definition(FILE *in);
+AstNode *parse_expression(HashTable *table, FILE *in, char token);
+void parse_definition(HashTable *table, FILE *in);
 char *parse_variable(FILE *in, tokens_t token);
 void free_ast(AstNode *node);
 #endif
