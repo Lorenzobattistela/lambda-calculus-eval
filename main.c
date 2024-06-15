@@ -1,4 +1,4 @@
-#include "common.h"
+#include "./hash-table/hash_table.h"
 #include "io.h"
 #include "parser.h"
 #include "reducer.h"
@@ -82,6 +82,9 @@ FILE *cli() {
 int main(void) {
   FILE *in = cli();
   HANDLE_NULL(in);
+
+  HashTable *table = createHashTable();
+
   AstNode *res = parse_expression(in, next(in));
   print_ast(res);
   AstNode *red = reduce_ast(res);
