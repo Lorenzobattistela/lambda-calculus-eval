@@ -2,34 +2,6 @@
 
 bool used_variables[SIZE] = {false};
 
-void p_print_ast(AstNode *node) {
-  if (node == NULL) {
-    return;
-  }
-
-  switch (node->type) {
-  case LAMBDA_EXPR:
-    printf("(LAMBDA %c ", node->node.lambda_expr->parameter);
-    p_print_ast(node->node.lambda_expr->body);
-    printf(") ");
-    break;
-
-  case APPLICATION:
-    printf("(APP ");
-    p_print_ast(node->node.application->function);
-    p_print_ast(node->node.application->argument);
-    printf(") ");
-    break;
-
-  case VAR:
-    printf("(VAR %c) ", node->node.variable->name);
-    break;
-
-  default:
-    printf("(UNKNOWN) ");
-  }
-}
-
 // Alpha conversion -> if we have two lambda expressions with same variable
 // name, change one of them to create a new variable: (@x.xx)(@x.x) ->
 // (@x.xx)(@y.y) or -> (@x.xx)(@x'.x')
@@ -52,11 +24,11 @@ char new_variable() {
   exit(1);
 }
 
-bool is_used(char variable) { return used_variables[(int)variable]; }
+bool is_used(char *variable) { return false; }
 
-void replace(AstNode *n, char old, char new_name) {
+void replace(AstNode *n, char *old, char *new_name) {
   if (n->type == LAMBDA_EXPR) {
-    if (n->node.lambda_expr->parameter == old) {
+    if (strcmp(n->node.lambda_expr->parameter, old) == 0) {
       n->node.lambda_expr->parameter = new_name;
     }
     replace(n->node.lambda_expr->body, old, new_name);
@@ -80,9 +52,11 @@ AstNode *reduce_ast(AstNode *n) {
     // should rename it and replace it across the body of the lamba expr
 
     if (is_used(n->node.lambda_expr->parameter)) {
-      char new = new_variable();
-      replace(n, n->node.lambda_expr->parameter, new);
-      set_variable(new);
+      printf("TODO\n");
+      exit(EXIT_FAILURE);
+      // char new = new_variable();
+      // replace(n, n->node.lambda_expr->parameter, new);
+      // set_variable(new);
     }
 
     // recursively reduce the body
@@ -107,9 +81,9 @@ AstNode *reduce_ast(AstNode *n) {
   return n;
 }
 
-AstNode *substitute(AstNode *expression, char variable, AstNode *replacement) {
+AstNode *substitute(AstNode *expression, char *variable, AstNode *replacement) {
   if (expression->type == VAR) {
-    if (expression->node.variable->name == variable) {
+    if (strcmp(expression->node.variable->name, variable) == 0) {
       return deepcopy(replacement);
     }
     return expression;
@@ -165,7 +139,7 @@ AstNode *deepcopy_application(AstNode *function, AstNode *argument) {
   return application;
 }
 
-AstNode *deepcopy_lambda_expr(char parameter, AstNode *body) {
+AstNode *deepcopy_lambda_expr(char *parameter, AstNode *body) {
   AstNode *lambda = (AstNode *)malloc(sizeof(AstNode));
   lambda->type = LAMBDA_EXPR;
   lambda->node.lambda_expr =
@@ -175,7 +149,7 @@ AstNode *deepcopy_lambda_expr(char parameter, AstNode *body) {
   return lambda;
 }
 
-AstNode *deepcopy_var(char name) {
+AstNode *deepcopy_var(char *name) {
   AstNode *variable = (AstNode *)malloc(sizeof(AstNode));
   variable->type = VAR;
   variable->node.variable = (Variable *)malloc(sizeof(Variable));
