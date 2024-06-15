@@ -1,12 +1,12 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include "io.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "io.h"
 
 typedef enum {
   L_PAREN,
@@ -18,40 +18,43 @@ typedef enum {
   WHITESPACE,
 } tokens_t;
 
-enum AstNodeType {
-    LAMBDA_EXPR,
-    APPLICATION,
-    VAR,
-};
+typedef struct AstNode AstNode;
 
-struct LambdaExpression {
+typedef enum {
+  LAMBDA_EXPR,
+  APPLICATION,
+  VAR,
+} AstNodeType;
+
+typedef struct {
   char parameter;
-  struct AstNode *body;
-};
+  AstNode *body;
+} LambdaExpression;
 
-struct Application {
-  struct AstNode *function;
-  struct AstNode *argument;
-};
+typedef struct {
+  AstNode *function;
+  AstNode *argument;
+} Application;
 
-struct Variable {
+typedef struct {
   char name;
-};
-union AstNodeUnion {
-    struct LambdaExpression* lambda_expr;
-    struct Application* application;
-    struct Variable* variable;
-};
+} Variable;
+
+typedef union {
+  LambdaExpression *lambda_expr;
+  Application *application;
+  Variable *variable;
+} AstNodeUnion;
 
 struct AstNode {
-    enum AstNodeType type;
-    union AstNodeUnion node;
+  AstNodeType type;
+  AstNodeUnion node;
 };
 
 tokens_t parse_token(char token);
 bool is_variable(char token);
-void p_print_astNode_type(struct AstNode *n);
+void p_print_astNode_type(AstNode *n);
 void p_print_token(tokens_t token);
 void expect(char *expected, char received);
-struct AstNode *parse_expression(FILE *in, char token);
+AstNode *parse_expression(FILE *in, char token);
 #endif
