@@ -84,6 +84,11 @@ int main(void) {
   HANDLE_NULL(in);
   AstNode *res = parse_expression(in, next(in));
   print_ast(res);
+  AstNode *red = reduce_ast(res);
+  printf("\nReduced ast:\n");
+  print_ast(red);
+  printf("\n");
+  free_ast(res);
   close_file(in);
   return 1;
 }
