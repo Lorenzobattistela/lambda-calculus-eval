@@ -1,3 +1,6 @@
+#ifndef HASH_TABLE_H
+#define HASH_TABLE_H
+
 #include "../common.h"
 
 #define HASH_TABLE_SIZE 2000
@@ -22,4 +25,4 @@ HashTable *createHashTable();
 
 void destroyHashTable(HashTable *hashTable);
 
-void print_hash_table(HashTable *table);
+#endif
