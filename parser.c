@@ -2,6 +2,7 @@
 #include "common.h"
 #include "hash-table/hash_table.h"
 #include "io.h"
+#include <string.h>
 
 tokens_t parse_token(char token) {
   if (token == '(') {
@@ -82,6 +83,63 @@ void p_print_astNode_type(AstNode *n) {
     printf("AstNode Type: DEFINITION\n");
     break;
   }
+}
+
+void append_to_buffer(char **buffer, size_t *buffer_size, size_t *length, const char *str) {
+    size_t str_len = strlen(str);
+    while (*length + str_len + 1 >= *buffer_size) {
+        *buffer_size *= 2;
+        *buffer = realloc(*buffer, *buffer_size);
+    }
+    strcpy(*buffer + *length, str);
+    *length += str_len;
+}
+
+void append_ast_to_buffer(char **buffer, size_t *buffer_size, size_t *length, AstNode *node) {
+    if (node == NULL) {
+        return;
+    }
+
+    switch (node->type) {
+        case LAMBDA_EXPR:
+            append_to_buffer(buffer, buffer_size, length, "(@.");
+            append_to_buffer(buffer, buffer_size, length, node->node.lambda_expr->parameter);
+            append_to_buffer(buffer, buffer_size, length, " ");
+            append_ast_to_buffer(buffer, buffer_size, length, node->node.lambda_expr->body);
+            append_to_buffer(buffer, buffer_size, length, ") ");
+            break;
+
+        case APPLICATION:
+            append_to_buffer(buffer, buffer_size, length, "(");
+            append_ast_to_buffer(buffer, buffer_size, length, node->node.application->function);
+            append_ast_to_buffer(buffer, buffer_size, length, node->node.application->argument);
+            append_to_buffer(buffer, buffer_size, length, ") ");
+            break;
+
+        case VAR:
+            append_to_buffer(buffer, buffer_size, length, "(");
+            append_to_buffer(buffer, buffer_size, length, node->node.variable->name);
+            append_to_buffer(buffer, buffer_size, length, ") ");
+            break;
+
+        case DEFINITION:
+            append_to_buffer(buffer, buffer_size, length, "(");
+            append_to_buffer(buffer, buffer_size, length, node->node.variable->name);
+            append_to_buffer(buffer, buffer_size, length, ") ");
+            break;
+
+        default:
+            append_to_buffer(buffer, buffer_size, length, "(UNKNOWN) ");
+    }
+}
+
+char *ast_to_string(AstNode *node) {
+    size_t buffer_size = 1024;
+    char *buffer = malloc(buffer_size);
+    buffer[0] = '\0';
+    size_t length = 0;
+    append_ast_to_buffer(&buffer, &buffer_size, &length, node);
+    return buffer;
 }
 
 void print_ast(AstNode *node) {
