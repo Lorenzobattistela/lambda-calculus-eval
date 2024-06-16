@@ -130,6 +130,54 @@ char peek(FILE *in) {
   return c;
 }
 
+AstNode *create_variable(char *name) {
+  AstNode *var = (AstNode *)malloc(sizeof(AstNode));
+  HANDLE_NULL(var);
+  var->type = VAR;
+  var->node.variable = (Variable *)malloc(sizeof(Variable));
+  var->node.variable->name = name;
+  return var;
+}
+
+AstNode *create_application(AstNode *function, AstNode *argument) {
+  AstNode *app = (AstNode *)malloc(sizeof(AstNode));
+  HANDLE_NULL(app);
+  app->type = APPLICATION;
+  app->node.application = (Application *)malloc(sizeof(Application));
+  app->node.application->function = function;
+  app->node.application->argument = argument;
+  return app;
+}
+
+AstNode *create_lambda(char *variable, AstNode *body) {
+  AstNode *lambda = (AstNode *)malloc(sizeof(AstNode));
+  HANDLE_NULL(lambda);
+  lambda->type = LAMBDA_EXPR;
+  lambda->node.lambda_expr =
+      (LambdaExpression *)malloc(sizeof(LambdaExpression));
+  lambda->node.lambda_expr->parameter = variable;
+  lambda->node.lambda_expr->body = body;
+  return lambda;
+}
+
+AstNode *parse_lambda(HashTable *table, FILE *in) {
+  char parameter = next(in);
+  tokens_t param = parse_token(parameter);
+  if (param != VARIABLE) {
+    expect("A variable", parameter);
+  }
+
+  char *var = parse_variable(in, parameter);
+  char dot = next(in);
+  if (parse_token(dot) != DOT) {
+    expect(".", dot);
+  }
+
+  AstNode *body = parse_expression(table, in, next(in));
+
+  return create_lambda(var, body);
+}
+
 AstNode *parse_expression(HashTable *table, FILE *in, char token) {
   while (parse_token(token) == WHITESPACE || parse_token(token) == NEWLINE) {
     token = next(in);
@@ -137,29 +185,7 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token) {
   tokens_t scanned = parse_token(token);
 
   if (scanned == LAMBDA) {
-    char parameter = next(in);
-    tokens_t param = parse_token(parameter);
-    if (param != VARIABLE) {
-      return NULL;
-    }
-
-    char *var = parse_variable(in, parameter);
-    char dot = next(in);
-    tokens_t dot_t = parse_token(dot);
-    if (dot_t != DOT) {
-      expect(".", token);
-      return NULL;
-    }
-
-    AstNode *body = parse_expression(table, in, next(in));
-
-    AstNode *res = (AstNode *)malloc(sizeof(AstNode));
-    res->type = LAMBDA_EXPR;
-    res->node.lambda_expr =
-        (LambdaExpression *)malloc(sizeof(LambdaExpression));
-    res->node.lambda_expr->parameter = var;
-    res->node.lambda_expr->body = body;
-    return res;
+    return parse_lambda(table, in);
   }
 
   else if (scanned == L_PAREN) {
@@ -200,15 +226,11 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token) {
       }
       return NULL;
     }
-    AstNode *variable = (AstNode *)malloc(sizeof(AstNode));
 
-    HANDLE_NULL(variable);
-    variable->type = VAR;
+    AstNode *variable = create_variable(var_name);
     if (search(table, var_name) != NULL) {
       variable->type = DEFINITION;
     }
-    variable->node.variable = (Variable *)malloc(sizeof(Variable));
-    variable->node.variable->name = var_name;
     return variable;
   }
   return NULL;
@@ -230,7 +252,6 @@ void parse_definition(HashTable *table, FILE *in) {
     exit(EXIT_FAILURE);
   }
   char *def_name = parse_variable(in, next_token);
-  printf("def name is: %s\n", def_name);
 
   next_token = next(in);
   n = parse_token(next_token);
@@ -272,7 +293,7 @@ char *parse_variable(FILE *in, tokens_t token) {
 
 void expect(char *expected, char received) {
   printf("Syntax Error: Expected %s , received %c \n", expected, received);
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
 void free_ast(AstNode *node) {

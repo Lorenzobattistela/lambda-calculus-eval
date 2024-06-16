@@ -20,4 +20,8 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token);
 void parse_definition(HashTable *table, FILE *in);
 char *parse_variable(FILE *in, tokens_t token);
 void free_ast(AstNode *node);
+AstNode *create_variable(char *name);
+AstNode *create_application(AstNode *function, AstNode *argument);
+AstNode *create_lambda(char *variable, AstNode *body);
+
 #endif
