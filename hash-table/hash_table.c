@@ -29,12 +29,17 @@ void insert(HashTable *hashTable, const char *key, struct AstNode *value) {
 }
 
 AstNode *search(HashTable *hashTable, const char *key) {
+  if (key == NULL) {
+    return NULL;
+  }
+
   unsigned int index = hash(key);
   HashNode *current = hashTable->table[index];
 
   while (current != NULL) {
-    if (strcmp(current->key, key) == 0)
+    if (strcmp(current->key, key) == 0) {
       return current->value;
+    }
     current = current->next;
   }
 
