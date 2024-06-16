@@ -14,6 +14,7 @@ $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR):
+	mkdir -p temp
 	mkdir -p $(OBJDIR)/hash-table
 	mkdir -p $(OBJDIR)
 
