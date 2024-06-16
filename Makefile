@@ -3,7 +3,7 @@ CFLAGS = -Wall -g
 SRC = parser.c reducer.c io.c main.c hash-table/hash_table.c
 OBJDIR = obj
 OBJS = $(patsubst %.c, $(OBJDIR)/%.o, $(SRC))
-EXECUTABLE = converter
+EXECUTABLE = lc
 
 all: $(EXECUTABLE)
 
@@ -14,6 +14,7 @@ $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR):
+	mkdir -p $(OBJDIR)/hash-table
 	mkdir -p $(OBJDIR)
 
 run: $(EXECUTABLE)
