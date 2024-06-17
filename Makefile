@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -g
-SRC = parser.c reducer.c io.c main.c hash-table/hash_table.c
+SRC = config.c parser.c reducer.c io.c main.c hash-table/hash_table.c
 OBJDIR = obj
 OBJS = $(patsubst %.c, $(OBJDIR)/%.o, $(SRC))
 EXECUTABLE = lc

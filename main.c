@@ -1,4 +1,5 @@
 #include "./hash-table/hash_table.h"
+#include "config.h"
 #include "io.h"
 #include "parser.h"
 #include "reducer.h"
@@ -6,19 +7,6 @@
 
 #define MAX_LAMBDA_LENGTH 1000
 #define TMP_PATH "tmp/expr.lambda"
-#define CONFIG_PATH "config"
-
-typedef enum {
-  APPLICATIVE, // always fully evaluate the arguments of a function before
-               // evaluating the function itself
-  NORMAL,      // reduction happens from the outside in
-} reduction_order_t;
-
-typedef struct {
-  FILE *file;
-  bool step_by_step_reduction;
-  reduction_order_t reduction_order;
-} Options;
 
 char *get_str_input(char *input_msg, char *error_msg) {
   char *input = malloc(MAX_LAMBDA_LENGTH + 1 * sizeof(char));
@@ -95,7 +83,15 @@ reduction_order_t get_reduction_order() {
   }
 }
 
-// Options get_config_from_file() {}
+bool exists(char *path) {
+  FILE *file;
+  if ((file = fopen(path, "r")) != NULL) {
+    fclose(file);
+    return true;
+  }
+  return false;
+}
+
 
 Options cli() {
   FILE *f;
@@ -139,7 +135,12 @@ Options cli() {
 }
 
 int main(void) {
-  Options opt = cli();
+  Options opt;
+  if (exists(CONFIG_PATH)) {
+    opt = get_config_from_file();
+  } else {
+    opt = cli();
+  }
   FILE *in = opt.file;
   HANDLE_NULL(in);
   HashTable *table = createHashTable();
