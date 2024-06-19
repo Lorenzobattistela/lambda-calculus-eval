@@ -152,7 +152,6 @@ int main(void) {
   char *reduced_ast_str = ast_to_string(reduced);
   printf("%s\n", reduced_ast_str);
 
-  free_ast(parsed);
   destroyHashTable(table);
   close_file(in);
   return 1;

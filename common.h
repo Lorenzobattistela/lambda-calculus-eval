@@ -1,5 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
+#include <stdbool.h>
 
 #define HANDLE_NULL(ptr)                                                       \
   do {                                                                         \
@@ -55,5 +56,13 @@ struct AstNode {
   AstNodeType type;
   AstNodeUnion node;
 };
+
+void set_verbose(bool verbose);
+
+void print_ast_verbose(AstNode *n);
+
+void print_verbose(const char *format, ...);
+
+char *ast_to_string(AstNode *node);
 
 #endif

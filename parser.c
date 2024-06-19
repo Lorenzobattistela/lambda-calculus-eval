@@ -2,7 +2,11 @@
 #include "common.h"
 #include "hash-table/hash_table.h"
 #include "io.h"
+#include "reducer.h"
 #include <string.h>
+#include <math.h>
+
+static int n = 1;
 
 tokens_t parse_token(char token) {
   if (token == '(') {
@@ -85,62 +89,7 @@ void p_print_astNode_type(AstNode *n) {
   }
 }
 
-void append_to_buffer(char **buffer, size_t *buffer_size, size_t *length, const char *str) {
-    size_t str_len = strlen(str);
-    while (*length + str_len + 1 >= *buffer_size) {
-        *buffer_size *= 2;
-        *buffer = realloc(*buffer, *buffer_size);
-    }
-    strcpy(*buffer + *length, str);
-    *length += str_len;
-}
 
-void append_ast_to_buffer(char **buffer, size_t *buffer_size, size_t *length, AstNode *node) {
-    if (node == NULL) {
-        return;
-    }
-
-    switch (node->type) {
-        case LAMBDA_EXPR:
-            append_to_buffer(buffer, buffer_size, length, "(@.");
-            append_to_buffer(buffer, buffer_size, length, node->node.lambda_expr->parameter);
-            append_to_buffer(buffer, buffer_size, length, " ");
-            append_ast_to_buffer(buffer, buffer_size, length, node->node.lambda_expr->body);
-            append_to_buffer(buffer, buffer_size, length, ") ");
-            break;
-
-        case APPLICATION:
-            append_to_buffer(buffer, buffer_size, length, "(");
-            append_ast_to_buffer(buffer, buffer_size, length, node->node.application->function);
-            append_ast_to_buffer(buffer, buffer_size, length, node->node.application->argument);
-            append_to_buffer(buffer, buffer_size, length, ") ");
-            break;
-
-        case VAR:
-            append_to_buffer(buffer, buffer_size, length, "(");
-            append_to_buffer(buffer, buffer_size, length, node->node.variable->name);
-            append_to_buffer(buffer, buffer_size, length, ") ");
-            break;
-
-        case DEFINITION:
-            append_to_buffer(buffer, buffer_size, length, "(");
-            append_to_buffer(buffer, buffer_size, length, node->node.variable->name);
-            append_to_buffer(buffer, buffer_size, length, ") ");
-            break;
-
-        default:
-            append_to_buffer(buffer, buffer_size, length, "(UNKNOWN) ");
-    }
-}
-
-char *ast_to_string(AstNode *node) {
-    size_t buffer_size = 1024;
-    char *buffer = malloc(buffer_size);
-    buffer[0] = '\0';
-    size_t length = 0;
-    append_ast_to_buffer(&buffer, &buffer_size, &length, node);
-    return buffer;
-}
 
 void print_ast(AstNode *node) {
   if (node == NULL) {
@@ -176,6 +125,7 @@ void print_ast(AstNode *node) {
 
 bool is_variable(char token) {
   int cmp = (int)token;
+  if (cmp == '_') return true;
   if (cmp < 97 || cmp > 122) {
     return false;
   }
@@ -218,6 +168,41 @@ AstNode *create_lambda(char *variable, AstNode *body) {
   return lambda;
 }
 
+
+
+// Alpha conversion -> if we have two lambda expressions with same variable
+// name, change one of them to create a new variable: (@x.xx)(@x.x) ->
+// (@x.xx)(@y.y) or -> (@x.xx)(@x'.x')
+
+// Beta reduction: substitution -> we have to look for scope (@x.xy)z => zy
+
+// Eta Conversion / reduction -> Converts between @x.(f x) and f whenever x does
+// not appear free in f which means @x.(f x) = f if f does not make use of x
+// @x.(@y.yy)x) is equivalent to (@y.yy) because f does not make use of x.
+
+// Just convert var to var_n
+char *alpha_convert(char *old) {
+  int digits = (int)log10(abs(n)) + 1;
+
+  char *new = malloc(strlen(old) + digits + 2);
+  HANDLE_NULL(new);
+  char num_str[digits + 1];
+
+  strcpy(new, old);
+
+  sprintf(num_str, "_%d", n);
+  strcat(new, num_str);
+
+  n++;
+
+  return new;
+}
+
+bool is_used(HashTable *table, char *variable) {
+  return table_exists(table, variable);
+}
+
+
 AstNode *parse_lambda(HashTable *table, FILE *in) {
   char parameter = next(in);
   tokens_t param = parse_token(parameter);
@@ -226,13 +211,28 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
   }
 
   char *var = parse_variable(in, parameter);
+  char *new_var = NULL;
+  if (is_used(table, var)) {
+    if (search(table, var) != NULL) {
+      // this means a definition exists
+      printf("A definition with name %s already exists. Cannot use same name for lambda abstraction.\n", var);
+      exit(1);
+    }
+    new_var = alpha_convert(var);
+    insert(table, new_var, NULL);
+  } else {
+    insert(table, var, NULL);
+  }
   char dot = next(in);
   if (parse_token(dot) != DOT) {
     expect(".", dot);
   }
-
   AstNode *body = parse_expression(table, in, next(in));
-
+  if (new_var != NULL) {
+    replace(body, var, new_var);
+    print_verbose("Alpha converted %s to %s\n", var, new_var);
+    return create_lambda(new_var, body);
+  }
   return create_lambda(var, body);
 }
 

@@ -1,67 +1,14 @@
 #include "reducer.h"
 #include "common.h"
 #include "hash-table/hash_table.h"
-#include "parser.h"
 #include <stdarg.h>
-
-static bool verbose_mode = false;
-
-void set_verbose(bool verbose) {
-  verbose_mode = verbose;
-}
-
-void print_ast_verbose(AstNode *n) {
-  if (verbose_mode == false) {
-    return;
-  }
-  char *lambda_ast = ast_to_string(n);
-  printf("%s\n", lambda_ast);
-}
-
-void print_verbose(const char *format, ...) {
-  if (verbose_mode == false) {
-    return;
-  }
-  printf("\n");
-  va_list args;
-  va_start(args, format);
-  vprintf(format, args);
-  va_end(args);
-}
-
-bool used_variables[SIZE] = {false};
-
-// Alpha conversion -> if we have two lambda expressions with same variable
-// name, change one of them to create a new variable: (@x.xx)(@x.x) ->
-// (@x.xx)(@y.y) or -> (@x.xx)(@x'.x')
-
-// Beta reduction: substitution -> we have to look for scope (@x.xy)z => zy
-
-// Eta Conversion / reduction -> Converts between @x.(f x) and f whenever x does
-// not appear free in f which means @x.(f x) = f if f does not make use of x
-// @x.(@y.yy)x) is equivalent to (@y.yy) because f does not make use of x.
-
-void set_variable(char variable) { used_variables[(int)variable] = true; }
-
-char new_variable() {
-  for (int i = 0; i < SIZE; i++) {
-    if (!used_variables[i]) {
-      return (char)i;
-    }
-  }
-  printf("No more available variables to do alpha conversion. Quitting");
-  exit(1);
-}
-
-bool is_used(char *variable) { return false; }
-
 
 AstNode *reduce(HashTable *table, AstNode *n) {
   print_verbose("-------------------------------------------\n");
   expand_definitions(table, n);
   print_verbose("Expanded expression:\n");
   print_ast_verbose(n);
-  AstNode *reduced = reduce_ast(n);
+  AstNode *reduced = reduce_ast(table, n);
   print_verbose("Final reduced expression:\n");
   print_ast_verbose(reduced);
   print_verbose("-------------------------------------------\n");
@@ -102,30 +49,18 @@ void replace(AstNode *n, char *old, char *new_name) {
   }
 
   else if (n->type == VAR) {
-    if (strcmp(n->node.variable->name, old)) {
+    if (strcmp(n->node.variable->name, old) == 0) {
       n->node.variable->name = new_name;
     }
   }
 }
 
-AstNode *reduce_ast(AstNode *n) {
+AstNode *reduce_ast(HashTable *table, AstNode *n) {
   if (n->type == LAMBDA_EXPR) {
-    // if a variable is already used and we encounter it on a lambda_expr, we
-    // should rename it and replace it across the body of the lamba expr
-    char *param = n->node.lambda_expr->parameter;
     AstNode *body = n->node.lambda_expr->body;
 
-    if (is_used(param)) {
-      printf("TODO\n");
-      exit(EXIT_FAILURE);
-      // char new = new_variable();
-      // replace(n, n->node.lambda_expr->parameter, new);
-      // set_variable(new);
-    }
-
     // recursively reduce the body
-    n->node.lambda_expr->body = reduce_ast(body);
-
+    n->node.lambda_expr->body = reduce_ast(table, body);
     return n;
   }
 
@@ -134,9 +69,9 @@ AstNode *reduce_ast(AstNode *n) {
     AstNode *function = n->node.application->function;
     AstNode *argument = n->node.application->argument;
 
-    n->node.application->function = reduce_ast(function);
+    n->node.application->function = reduce_ast(table, function);
 
-    n->node.application->argument = reduce_ast(argument);
+    n->node.application->argument = reduce_ast(table, argument);
 
     if (n->node.application->function->type == LAMBDA_EXPR) {
       char *param = n->node.application->function->node.lambda_expr->parameter;

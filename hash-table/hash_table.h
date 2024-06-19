@@ -2,6 +2,7 @@
 #define HASH_TABLE_H
 
 #include "../common.h"
+#include <stdbool.h>
 
 #define HASH_TABLE_SIZE 2000
 
@@ -24,5 +25,7 @@ void delete_c(HashTable *hashTable, const char *key);
 HashTable *createHashTable();
 
 void destroyHashTable(HashTable *hashTable);
+
+bool table_exists(HashTable *hashTable, const char *key);
 
 #endif

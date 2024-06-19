@@ -28,6 +28,12 @@ void insert(HashTable *hashTable, const char *key, struct AstNode *value) {
   }
 }
 
+bool table_exists(HashTable *hashTable, const char *key) {
+  unsigned int index = hash(key);
+  HashNode *node = hashTable->table[index];
+  return node != NULL;
+}
+
 AstNode *search(HashTable *hashTable, const char *key) {
   if (key == NULL) {
     return NULL;
