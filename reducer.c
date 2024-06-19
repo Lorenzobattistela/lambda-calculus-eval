@@ -1,6 +1,33 @@
 #include "reducer.h"
 #include "common.h"
 #include "hash-table/hash_table.h"
+#include "parser.h"
+#include <stdarg.h>
+
+static bool verbose_mode = false;
+
+void set_verbose(bool verbose) {
+  verbose_mode = verbose;
+}
+
+void print_ast_verbose(AstNode *n) {
+  if (verbose_mode == false) {
+    return;
+  }
+  char *lambda_ast = ast_to_string(n);
+  printf("%s\n", lambda_ast);
+}
+
+void print_verbose(const char *format, ...) {
+  if (verbose_mode == false) {
+    return;
+  }
+  printf("\n");
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+}
 
 bool used_variables[SIZE] = {false};
 
@@ -28,7 +55,19 @@ char new_variable() {
 
 bool is_used(char *variable) { return false; }
 
-// including a step to replace definitions with its values
+
+AstNode *reduce(HashTable *table, AstNode *n) {
+  print_verbose("-------------------------------------------\n");
+  expand_definitions(table, n);
+  print_verbose("Expanded expression:\n");
+  print_ast_verbose(n);
+  AstNode *reduced = reduce_ast(n);
+  print_verbose("Final reduced expression:\n");
+  print_ast_verbose(reduced);
+  print_verbose("-------------------------------------------\n");
+  return reduced;
+}
+
 void expand_definitions(HashTable *table, AstNode *n) {
   if (n->type == LAMBDA_EXPR) {
     expand_definitions(table, n->node.lambda_expr->body);
@@ -39,6 +78,9 @@ void expand_definitions(HashTable *table, AstNode *n) {
     char *def_name = n->node.variable->name;
     AstNode *expanded_def = search(table, def_name);
     HANDLE_NULL(expanded_def);
+    print_verbose("Expanding definition of: %s . Term expanded to:\n", def_name);
+    print_ast_verbose(expanded_def);
+
     n->type = expanded_def->type;
     n->node.variable = expanded_def->node.variable;
     n->node.lambda_expr = expanded_def->node.lambda_expr;
@@ -70,8 +112,10 @@ AstNode *reduce_ast(AstNode *n) {
   if (n->type == LAMBDA_EXPR) {
     // if a variable is already used and we encounter it on a lambda_expr, we
     // should rename it and replace it across the body of the lamba expr
+    char *param = n->node.lambda_expr->parameter;
+    AstNode *body = n->node.lambda_expr->body;
 
-    if (is_used(n->node.lambda_expr->parameter)) {
+    if (is_used(param)) {
       printf("TODO\n");
       exit(EXIT_FAILURE);
       // char new = new_variable();
@@ -80,20 +124,29 @@ AstNode *reduce_ast(AstNode *n) {
     }
 
     // recursively reduce the body
-    n->node.lambda_expr->body = reduce_ast(n->node.lambda_expr->body);
+    n->node.lambda_expr->body = reduce_ast(body);
+
     return n;
   }
 
   else if (n->type == APPLICATION) {
     // apply reduce rules
-    n->node.application->function = reduce_ast(n->node.application->function);
-    n->node.application->argument = reduce_ast(n->node.application->argument);
+    AstNode *function = n->node.application->function;
+    AstNode *argument = n->node.application->argument;
+
+    n->node.application->function = reduce_ast(function);
+
+    n->node.application->argument = reduce_ast(argument);
 
     if (n->node.application->function->type == LAMBDA_EXPR) {
-      return substitute(
+      char *param = n->node.application->function->node.lambda_expr->parameter;
+      AstNode *reduced = substitute(
           n->node.application->function->node.lambda_expr->body,
-          n->node.application->function->node.lambda_expr->parameter,
+          param,
           n->node.application->argument);
+      print_verbose("Applied substitution to lambda expr of parameter <%s> and resulted in:\n", param);
+      print_ast_verbose(reduced);
+      return reduced;
     }
     return n;
   }
