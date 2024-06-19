@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -g
+LDFLAGS = -lm
 SRC = config.c parser.c reducer.c io.c main.c hash-table/hash_table.c
 OBJDIR = obj
 OBJS = $(patsubst %.c, $(OBJDIR)/%.o, $(SRC))
@@ -8,7 +9,7 @@ EXECUTABLE = lc
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 $(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@

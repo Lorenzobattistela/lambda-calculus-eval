@@ -10,7 +10,7 @@
 #include <string.h>
 
 AstNode *reduce(HashTable *table, AstNode *n);
-AstNode *reduce_ast(AstNode *n);
+AstNode *reduce_ast(HashTable *table, AstNode *n);
 void expand_definitions(HashTable *table, AstNode *n);
 AstNode *deepcopy(AstNode *n);
 AstNode *deepcopy_application(AstNode *function, AstNode *argument);
