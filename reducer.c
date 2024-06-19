@@ -2,6 +2,14 @@
 #include "common.h"
 #include "hash-table/hash_table.h"
 
+#define VERBOSE 0
+
+#if VERBOSE
+  #define SHOW(a) printf a
+#else
+  #define SHOW(a) (void)0
+#endif
+
 bool used_variables[SIZE] = {false};
 
 // Alpha conversion -> if we have two lambda expressions with same variable
@@ -15,6 +23,11 @@ bool used_variables[SIZE] = {false};
 // @x.(@y.yy)x) is equivalent to (@y.yy) because f does not make use of x.
 
 void set_variable(char variable) { used_variables[(int)variable] = true; }
+void set_verbose(bool verbose) {
+  #undef VERBOSE
+  #define VERBOSE verbose
+  printf("Verbose set to: %i\n", verbose);
+}
 
 char new_variable() {
   for (int i = 0; i < SIZE; i++) {
@@ -28,7 +41,6 @@ char new_variable() {
 
 bool is_used(char *variable) { return false; }
 
-// including a step to replace definitions with its values
 void expand_definitions(HashTable *table, AstNode *n) {
   if (n->type == LAMBDA_EXPR) {
     expand_definitions(table, n->node.lambda_expr->body);
@@ -72,6 +84,7 @@ AstNode *reduce_ast(AstNode *n) {
     // should rename it and replace it across the body of the lamba expr
 
     if (is_used(n->node.lambda_expr->parameter)) {
+      SHOW(("Performing alpha conversion on param: %s\n", n->node.lambda_expr->paramater));
       printf("TODO\n");
       exit(EXIT_FAILURE);
       // char new = new_variable();
@@ -80,16 +93,20 @@ AstNode *reduce_ast(AstNode *n) {
     }
 
     // recursively reduce the body
+    SHOW(("Reducing lambda %s expression body\n", n->node.lambda_expr->parameter));
     n->node.lambda_expr->body = reduce_ast(n->node.lambda_expr->body);
     return n;
   }
 
   else if (n->type == APPLICATION) {
     // apply reduce rules
+    SHOW(("Reducing application function\n"));
     n->node.application->function = reduce_ast(n->node.application->function);
+    SHOW(("Reducing application argument\n"));
     n->node.application->argument = reduce_ast(n->node.application->argument);
 
     if (n->node.application->function->type == LAMBDA_EXPR) {
+      SHOW(("Performing beta reduction\n"));
       return substitute(
           n->node.application->function->node.lambda_expr->body,
           n->node.application->function->node.lambda_expr->parameter,

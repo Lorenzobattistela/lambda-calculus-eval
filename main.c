@@ -141,6 +141,7 @@ int main(void) {
   } else {
     opt = cli();
   }
+  set_verbose(opt.step_by_step_reduction);
   FILE *in = opt.file;
   HANDLE_NULL(in);
   HashTable *table = createHashTable();

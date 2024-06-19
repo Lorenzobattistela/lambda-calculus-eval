@@ -16,5 +16,6 @@ AstNode *deepcopy_var(char *name);
 AstNode *substitute(AstNode *expression, char *variable, AstNode *replacement);
 void replace(AstNode *n, char *old, char *new_name);
 void p_print_ast(AstNode *node);
+void set_verbose(bool verbose);
 
 #endif
