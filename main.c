@@ -146,19 +146,13 @@ int main(void) {
   HANDLE_NULL(in);
   HashTable *table = createHashTable();
 
-  AstNode *res = parse_expression(table, in, next(in));
-  print_ast(res);
-  printf("\n");
-
-  expand_definitions(table, res);
-  print_ast(res);
-
-  AstNode *red = reduce_ast(res);
+  AstNode *parsed = parse_expression(table, in, next(in));
+  AstNode *reduced = reduce(table, parsed);
   printf("\nReduced ast:\n");
-  char *reduced_ast_str = ast_to_string(red);
+  char *reduced_ast_str = ast_to_string(reduced);
   printf("%s\n", reduced_ast_str);
 
-  free_ast(res);
+  free_ast(parsed);
   destroyHashTable(table);
   close_file(in);
   return 1;

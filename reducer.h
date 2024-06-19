@@ -1,12 +1,15 @@
 #ifndef REDUCER_H
 #define REDUCER_H
 
+#include "common.h"
+#include "hash-table/hash_table.h"
 #define SIZE 122
 #include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+AstNode *reduce(HashTable *table, AstNode *n);
 AstNode *reduce_ast(AstNode *n);
 void expand_definitions(HashTable *table, AstNode *n);
 AstNode *deepcopy(AstNode *n);
