@@ -1,33 +1,7 @@
 #include "reducer.h"
 #include "common.h"
 #include "hash-table/hash_table.h"
-#include "parser.h"
 #include <stdarg.h>
-
-static bool verbose_mode = false;
-
-void set_verbose(bool verbose) {
-  verbose_mode = verbose;
-}
-
-void print_ast_verbose(AstNode *n) {
-  if (verbose_mode == false) {
-    return;
-  }
-  char *lambda_ast = ast_to_string(n);
-  printf("%s\n", lambda_ast);
-}
-
-void print_verbose(const char *format, ...) {
-  if (verbose_mode == false) {
-    return;
-  }
-  printf("\n");
-  va_list args;
-  va_start(args, format);
-  vprintf(format, args);
-  va_end(args);
-}
 
 AstNode *reduce(HashTable *table, AstNode *n) {
   print_verbose("-------------------------------------------\n");
