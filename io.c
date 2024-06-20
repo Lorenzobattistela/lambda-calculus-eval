@@ -6,7 +6,7 @@
 FILE *create_file(char *path) {
   FILE *file = fopen(path, "w");
   if (file == NULL) {
-    printf("Error: Could not create file %s\n", path);
+    printf("ERROR: Could not create file %s\n", path);
     exit(1);
   }
   return file;
@@ -15,7 +15,7 @@ FILE *create_file(char *path) {
 FILE *get_file(char *path, char *mode) {
   FILE *file = fopen(path, mode);
   if (file == NULL) {
-    printf("Error: Could not open file %s\n", path);
+    printf("ERROR: Could not open file %s\n", path);
     exit(1);
   }
   return file;

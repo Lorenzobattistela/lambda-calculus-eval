@@ -9,7 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define IMPORT_HEADER "# DEF #"
+
 tokens_t parse_token(char token);
+void parse_import(HashTable *table, FILE *in);
 bool is_variable(char token);
 void p_print_astNode_type(AstNode *n);
 void p_print_token(tokens_t token);
