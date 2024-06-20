@@ -1,5 +1,3 @@
-def a = @x.x
+import "imports.lambda"
 
-def b = @y.y
-
-((@x.x b) c)
+(@y.y a)
