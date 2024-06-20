@@ -294,6 +294,33 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token) {
   return NULL;
 }
 
+void parse_import(HashTable *table, FILE *in) {
+    // in this step we already parsed the string "import"
+    char next_token = next(in);
+    tokens_t n = parse_token(next_token);
+    if (n != WHITESPECE) {
+        expect(" ", next_token);
+    }
+    next_token = next(in);
+    n = parse_token(next_token);
+    if (n != QUOTE) {
+        expect('"', next_token);
+    }
+    next_token = next(in);
+    n = parse_token(next_token);
+    if (n != VARIABLE) {
+        expect("A file name", next_token);
+    }
+    char *import_file = parse_variable(in, next_token);
+
+    next_token = next(in);
+    n = parse_token(next_token);
+    if (n != QUOTE) {
+        expect("Closing quote for file definition", next_token);
+    }
+    // open file and parse expression from there. Should be the def header
+}
+
 void parse_definition(HashTable *table, FILE *in) {
   char next_token = next(in);
   tokens_t n = parse_token(next_token);

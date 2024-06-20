@@ -21,6 +21,7 @@ typedef enum {
   WHITESPACE,
   NEWLINE,
   EQ,
+  QUOTE,
 } tokens_t;
 
 typedef struct AstNode AstNode;
