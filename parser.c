@@ -27,6 +27,8 @@ tokens_t parse_token(char token) {
     return EQ;
   } else if (token == '"') {
     return QUOTE;
+  } else if (token == ':') {
+    return COLON;
   }
   return ERROR;
 }
@@ -206,6 +208,15 @@ bool is_used(HashTable *table, char *variable) {
   return table_exists(table, variable);
 }
 
+
+void parse_space_chars(FILE *in) {
+  char c = peek(in);
+  while (c == ' ' || c == '\n' || c == '\t') {
+    next(in);
+    c = peek(in);
+  }
+}
+
 AstNode *parse_lambda(HashTable *table, FILE *in) {
   char parameter;
   tokens_t param;
@@ -228,9 +239,16 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
     insert(table, var, NULL);
   }
 
-  consume(DOT, in, ".");
+  parse_space_chars(in);
 
+  consume(COLON, in, ":");
+  
+  parse_space_chars(in);
+
+  consume(DOT, in, ".");
+  
   AstNode *body = parse_expression(table, in);
+
   if (new_var != NULL) {
     replace(body, var, new_var);
     print_verbose("Alpha converted %s to %s\n", var, new_var);
@@ -384,6 +402,58 @@ void parse_definition(HashTable *table, FILE *in) {
 
   AstNode *definition = parse_expression(table, in);
   insert(table, def_name, definition);
+}
+
+bool is_uppercase(char c) {
+  return c >= 'A' && c <= 'Z';
+}
+
+void parse_type_definition(HashTable *types_table, FILE *in) {
+  // at this point we already parsed the word "type"
+  char next_token = next(in);
+  tokens_t n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  next_token = peek(in);
+  n = parse_token(next_token);
+  if (n != VARIABLE) {
+    expect("a variable", next_token);
+    exit(EXIT_FAILURE);
+  }
+
+  if (!is_uppercase(next_token)) {
+    printf("Type names must start with an uppercase letter\n");
+    exit(EXIT_FAILURE);
+  }
+
+  char *type_name = parse_variable(in);
+  if (table_exists(types_table, type_name)) {
+    printf("Type %s was already defined.\n", type_name);
+    exit(EXIT_FAILURE);
+  }
+  insert(types_table, type_name, NULL);
+}
+
+char *parse_type(FILE *in, tokens_t token) {
+  char *type_name = malloc(256 * sizeof(char));
+  int index = 0;
+
+  if (!is_uppercase(token)) {
+    printf("Types should start with uppercase letter!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  type_name[index] = token;
+  index++;
+
+  while (is_variable(peek(in))) {
+    type_name[index] = next(in);
+    index++;
+  }
+  return type_name;
 }
 
 char *parse_variable(FILE *in) {
