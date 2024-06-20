@@ -25,6 +25,8 @@ tokens_t parse_token(char token) {
     return NEWLINE;
   } else if (token == '=') {
     return EQ;
+  } else if (token == '"') {
+    return QUOTE;
   }
   return ERROR;
 }
@@ -283,6 +285,11 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token) {
         return parse_expression(table, in, next(in));
       }
       return NULL;
+    } else if (strcmp(var_name, "import") == 0) {
+      parse_import(table, in);
+      if (peek(in) != EOF) {
+        return parse_expression(table, in, next(in));
+      }
     }
 
     AstNode *variable = create_variable(var_name);
@@ -298,30 +305,71 @@ void parse_import(HashTable *table, FILE *in) {
     // in this step we already parsed the string "import"
     char next_token = next(in);
     tokens_t n = parse_token(next_token);
-    if (n != WHITESPECE) {
+    if (n != WHITESPACE) {
         expect(" ", next_token);
     }
     next_token = next(in);
     n = parse_token(next_token);
     if (n != QUOTE) {
-        expect('"', next_token);
+        expect("\"", next_token);
     }
-    next_token = next(in);
-    n = parse_token(next_token);
-    if (n != VARIABLE) {
-        expect("A file name", next_token);
-    }
-    char *import_file = parse_variable(in, next_token);
+
+    char *file_path = malloc(100 * sizeof(char));
+    HANDLE_NULL(file_path);
 
     next_token = next(in);
     n = parse_token(next_token);
+    file_path[0] = '\0';
+
+    int current_length = 0;
+    while (n != QUOTE) {
+      // parse the file path
+      if (current_length < 100 - 1) {
+        file_path[current_length] = next_token;
+        current_length++;
+        file_path[current_length] = '\0';
+      } else {
+        printf("File path is too long. Please make sure it is less than 100 characters.\n");
+        exit(1);
+      }
+
+      next_token = next(in);
+      n = parse_token(next_token);
+    }
+
+    char *import_file = parse_variable(in, next_token);
+
     if (n != QUOTE) {
-        expect("Closing quote for file definition", next_token);
+      expect("Closing quote for file definition", next_token);
     }
     // open file and parse expression from there. Should be the def header
+    FILE *imported_file = get_file(file_path, "r");
+
+    char imported_tkn;
+    while ((imported_tkn = next(imported_file)) != EOF) {
+      tokens_t scanned = parse_token(imported_tkn);
+      while (scanned == WHITESPACE || scanned == NEWLINE) {
+        imported_tkn = next(imported_file);
+        scanned = parse_token(imported_tkn);
+      }
+      if (scanned == VARIABLE) {
+        char *var_name = parse_variable(imported_file, imported_tkn);
+        if (strcmp(var_name, "def") == 0) {
+          parse_definition(table, imported_file);
+        } else {
+          printf("Expected a definition in the imported file, but got %s\n", var_name);
+          exit(1);
+        }
+      } else {
+        printf("Expected a definition in the imported file, but got %c\n", imported_tkn);
+        exit(1);
+      }
+    }
+    return;
 }
 
 void parse_definition(HashTable *table, FILE *in) {
+  // at this moment the "def" string was already parsed
   char next_token = next(in);
   tokens_t n = parse_token(next_token);
   if (n != WHITESPACE) {
