@@ -39,6 +39,7 @@ typedef enum {
 
 typedef struct {
   char *parameter;
+  char *type;
   AstNode *body;
 } LambdaExpression;
 
@@ -49,6 +50,7 @@ typedef struct {
 
 typedef struct {
   char *name;
+  char *type;
 } Variable;
 
 typedef union {
