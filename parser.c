@@ -100,7 +100,7 @@ void print_ast(AstNode *node) {
 
   switch (node->type) {
   case LAMBDA_EXPR:
-    printf("(LAMBDA %s ", node->node.lambda_expr->parameter);
+    printf("(LAMBDA %s : %s", node->node.lambda_expr->parameter, node->node.lambda_expr->type);
     print_ast(node->node.lambda_expr->body);
     printf(") ");
     break;
@@ -113,7 +113,11 @@ void print_ast(AstNode *node) {
     break;
 
   case VAR:
-    printf("(VAR %s) ", node->node.variable->name);
+    printf("(VAR %s ", node->node.variable->name);
+    if (node->node.variable->type != NULL) {
+      printf(": %s", node->node.variable->type);
+    }
+    printf(")");
     break;
 
   case DEFINITION:
@@ -128,10 +132,10 @@ void print_ast(AstNode *node) {
 bool is_variable(char token) {
   int cmp = (int)token;
   if (cmp == '_') return true;
-  if (cmp < 97 || cmp > 122) {
-    return false;
+  if ((cmp >= 97 && cmp <= 122) || (cmp >= 65 && cmp <= 90)) {
+    return true;
   }
-  return true;
+  return false;
 }
 
 char peek(FILE *in) {
@@ -148,12 +152,13 @@ void consume(tokens_t t, FILE *in, char *expected) {
   }
 }
 
-AstNode *create_variable(char *name) {
+AstNode *create_variable(char *name, char *type) {
   AstNode *var = (AstNode *)malloc(sizeof(AstNode));
   HANDLE_NULL(var);
   var->type = VAR;
   var->node.variable = (Variable *)malloc(sizeof(Variable));
   var->node.variable->name = name;
+  var->node.variable->type = type;
   return var;
 }
 
@@ -167,7 +172,7 @@ AstNode *create_application(AstNode *function, AstNode *argument) {
   return app;
 }
 
-AstNode *create_lambda(char *variable, AstNode *body) {
+AstNode *create_lambda(char *variable, AstNode *body, char *type) {
   AstNode *lambda = (AstNode *)malloc(sizeof(AstNode));
   HANDLE_NULL(lambda);
   lambda->type = LAMBDA_EXPR;
@@ -175,6 +180,7 @@ AstNode *create_lambda(char *variable, AstNode *body) {
       (LambdaExpression *)malloc(sizeof(LambdaExpression));
   lambda->node.lambda_expr->parameter = variable;
   lambda->node.lambda_expr->body = body;
+  lambda->node.lambda_expr->type = type;
   return lambda;
 }
 
@@ -245,6 +251,13 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
   
   parse_space_chars(in);
 
+  // FIXME
+  char type_c = next(in);
+  if (parse_token(peek(in)) != VARIABLE) {
+    expect("Lambda abstractions should be typed.", type_c);
+  }
+  char *type = parse_type(table, in, type_c);
+
   consume(DOT, in, ".");
   
   AstNode *body = parse_expression(table, in);
@@ -252,9 +265,9 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
   if (new_var != NULL) {
     replace(body, var, new_var);
     print_verbose("Alpha converted %s to %s\n", var, new_var);
-    return create_lambda(new_var, body);
+    return create_lambda(new_var, body, type);
   }
-  return create_lambda(var, body);
+  return create_lambda(var, body, type);
 }
 
 AstNode *parse_expression(HashTable *table, FILE *in) {
@@ -264,6 +277,11 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
   tokens_t scanned = parse_token(peek(in));
   printf("Parsing expression token: ");
   p_print_token(scanned);
+
+  if (scanned == ERROR) {
+    printf("Error: %c is not a valid token\n");
+    exit(1);
+  }
 
   if (scanned == LAMBDA) {
     next(in);
@@ -310,9 +328,30 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
       if (peek(in) != EOF) {
         return parse_expression(table, in);
       }
+    } else if (strcmp(var_name, "type") == 0) {
+      parse_type_definition(table, in);
+      if (peek(in) != EOF) {
+        return parse_expression(table, in);
+      }
     }
 
-    AstNode *variable = create_variable(var_name);
+    // parse variable type
+    char *type = NULL;
+
+    parse_space_chars(in);
+    // if a variable is in our table, it means its used as a bound in lambda abstraction
+    // therefore should not be typed (because the lambda already type it)
+    // so if it does not exist, it is a constant and should be typed
+    if (!table_exists(table, var_name)) {
+      if (parse_token(peek(in)) != COLON) {
+        printf("Constant Variable %s is not typed. Please provide a type.\n", var_name);
+        exit(1);
+      }
+      parse_space_chars(in);
+      type = parse_type(table, in, next(in));
+    }
+
+    AstNode *variable = create_variable(var_name, type);
     if (search(table, var_name) != NULL) {
       variable->type = DEFINITION;
     }
@@ -414,14 +453,12 @@ void parse_type_definition(HashTable *types_table, FILE *in) {
   tokens_t n = parse_token(next_token);
   if (n != WHITESPACE) {
     expect(" ", next_token);
-    exit(EXIT_FAILURE);
   }
 
-  next_token = peek(in);
+  next_token = next(in);
   n = parse_token(next_token);
   if (n != VARIABLE) {
-    expect("a variable", next_token);
-    exit(EXIT_FAILURE);
+    expect("a type definition", next_token);
   }
 
   if (!is_uppercase(next_token)) {
@@ -437,7 +474,8 @@ void parse_type_definition(HashTable *types_table, FILE *in) {
   insert(types_table, type_name, NULL);
 }
 
-char *parse_type(FILE *in, tokens_t token) {
+char *parse_type(HashTable *types_table, FILE *in, tokens_t token) {
+  // here we already parsed the : symbol and the whitespace after
   char *type_name = malloc(256 * sizeof(char));
   int index = 0;
 
@@ -453,6 +491,12 @@ char *parse_type(FILE *in, tokens_t token) {
     type_name[index] = next(in);
     index++;
   }
+
+  if (!table_exists(types_table, type_name)) {
+    printf("Type %s was not defined.\n", type_name);
+    exit(EXIT_FAILURE);
+  }
+  printf("Parsed the type %s\n", type_name);
   return type_name;
 }
 

@@ -12,6 +12,8 @@
 #define IMPORT_HEADER "# DEF #"
 
 tokens_t parse_token(char token);
+void parse_type_definition(HashTable *types_table, FILE *in);
+char *parse_type(HashTable *types_table, FILE *in, tokens_t token);
 void parse_import(HashTable *table, FILE *in);
 bool is_variable(char token);
 void p_print_astNode_type(AstNode *n);
@@ -23,8 +25,8 @@ AstNode *parse_expression(HashTable *table, FILE *in);
 void parse_definition(HashTable *table, FILE *in);
 char *parse_variable(FILE *in);
 void free_ast(AstNode *node);
-AstNode *create_variable(char *name);
+AstNode *create_variable(char *name, char *type);
 AstNode *create_application(AstNode *function, AstNode *argument);
-AstNode *create_lambda(char *variable, AstNode *body);
+AstNode *create_lambda(char *variable, AstNode *body, char *type);
 
 #endif
