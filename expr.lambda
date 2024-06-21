@@ -1,3 +1,4 @@
-import "imports.lambda"
+type Nat
+type Bool
 
-(@y.y a)
+(@y : Bool.(x : Bool) c : Nat)
