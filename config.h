@@ -16,6 +16,7 @@ typedef enum {
   FILENAME,
   STEP_REDUCTION,
   REDUCTION_ORDER,
+  CONFIG_ERROR,
 } option_type_t;
 
 typedef struct {
