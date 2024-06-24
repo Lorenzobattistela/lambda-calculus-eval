@@ -1,6 +1,9 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include <stdbool.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define HANDLE_NULL(ptr)                                                       \
   do {                                                                         \
@@ -65,5 +68,9 @@ void print_ast_verbose(AstNode *n);
 void print_verbose(const char *format, ...);
 
 char *ast_to_string(AstNode *node);
+
+char* format(const char *fmt, ...);
+
+void error(const char *msg, const char *file, int line, const char *func);
 
 #endif

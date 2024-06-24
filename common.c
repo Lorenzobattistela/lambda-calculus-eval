@@ -32,6 +32,34 @@ void print_verbose(const char *format, ...) {
   va_end(args);
 }
 
+void error(const char *msg, const char *file, int line, const char *func) {
+  fprintf(stderr, "ERROR: %s at %s:%d in %s()\n", msg, file, line, func);
+  exit(EXIT_FAILURE);
+}
+
+char* format(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    int size = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+
+    if (size < 0) {
+        return NULL;
+    }
+
+    char *str = (char *)malloc(size + 1);
+    if (!str) {
+        return NULL;
+    }
+
+    va_start(args, fmt);
+    vsnprintf(str, size + 1, fmt, args);
+    va_end(args);
+
+    return str;
+}
+
 void append_to_buffer(char **buffer, size_t *buffer_size, size_t *length, const char *str) {
     size_t str_len = strlen(str);
     while (*length + str_len + 1 >= *buffer_size) {
