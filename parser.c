@@ -91,8 +91,6 @@ void p_print_astNode_type(AstNode *n) {
   }
 }
 
-
-
 void print_ast(AstNode *node) {
   if (node == NULL) {
     return;
@@ -138,6 +136,14 @@ char peek(FILE *in) {
   char c = fgetc(in);
   ungetc(c, in);
   return c;
+}
+
+void consume(tokens_t t, FILE *in, char *expected) {
+  char c = next(in);
+  tokens_t p = parse_token(c);
+  if (p != t) {
+    expect(expected, c);
+  }
 }
 
 AstNode *create_variable(char *name) {
@@ -216,19 +222,17 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
   char *new_var = NULL;
   if (is_used(table, var)) {
     if (search(table, var) != NULL) {
-      // this means a definition exists
-      printf("A definition with name %s already exists. Cannot use same name for lambda abstraction.\n", var);
-      exit(1);
+      const char * error_msg = format("A definition with name %s already exists. Cannot use same name for lambda abstraction.\n", var);
+      error(error_msg, __FILE__, __LINE__, __func__);
     }
     new_var = alpha_convert(var);
     insert(table, new_var, NULL);
   } else {
     insert(table, var, NULL);
   }
-  char dot = next(in);
-  if (parse_token(dot) != DOT) {
-    expect(".", dot);
-  }
+
+  consume(DOT, in, ".");
+
   AstNode *body = parse_expression(table, in, next(in));
   if (new_var != NULL) {
     replace(body, var, new_var);
@@ -262,17 +266,13 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token) {
       application->node.application->function = expr;
       application->node.application->argument = expr_2;
 
-      char right_paren = next(in);
-      if (parse_token(right_paren) != R_PAREN) {
-        expect(")", right_paren);
-      }
+      consume(R_PAREN, in, ")");
+
       return application;
     }
 
-    if (next_token != R_PAREN) {
-      expect(")", next_token);
-      return NULL;
-    }
+    consume(R_PAREN, in, ")");
+
     return expr;
   }
 
@@ -303,25 +303,22 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token) {
 
 void parse_import(HashTable *table, FILE *in) {
     // in this step we already parsed the string "import"
-    char next_token = next(in);
-    tokens_t n = parse_token(next_token);
-    if (n != WHITESPACE) {
-        expect(" ", next_token);
-    }
-    next_token = next(in);
-    n = parse_token(next_token);
-    if (n != QUOTE) {
-        expect("\"", next_token);
-    }
+    char next_token;
+    tokens_t n;
+
+    consume(WHITESPACE, in, "a whitespace");
+
+    consume(QUOTE, in, "\"");
 
     char *file_path = malloc(100 * sizeof(char));
     HANDLE_NULL(file_path);
 
     next_token = next(in);
     n = parse_token(next_token);
-    file_path[0] = '\0';
 
+    file_path[0] = '\0';
     int current_length = 0;
+
     while (n != QUOTE) {
       // parse the file path
       if (current_length < 100 - 1) {
@@ -329,21 +326,20 @@ void parse_import(HashTable *table, FILE *in) {
         current_length++;
         file_path[current_length] = '\0';
       } else {
-        printf("File path is too long. Please make sure it is less than 100 characters.\n");
-        exit(1);
+        const char *error_msg = "File path is too long. Please make sure it is less than 100 characters.";
+        error(error_msg, __FILE__, __LINE__, __func__);
       }
 
       next_token = next(in);
       n = parse_token(next_token);
     }
 
-    char *import_file = parse_variable(in, next_token);
-
     if (n != QUOTE) {
-      expect("Closing quote for file definition", next_token);
+      expect("a closing quote", next_token);
     }
-    // open file and parse expression from there. Should be the def header
+
     FILE *imported_file = get_file(file_path, "r");
+    HANDLE_NULL(imported_file);
 
     char imported_tkn;
     while ((imported_tkn = next(imported_file)) != EOF) {
@@ -357,12 +353,9 @@ void parse_import(HashTable *table, FILE *in) {
         if (strcmp(var_name, "def") == 0) {
           parse_definition(table, imported_file);
         } else {
-          printf("Expected a definition in the imported file, but got %s\n", var_name);
-          exit(1);
+          const char *error_msg = format("Expected a definition in the imported file, but got %s\n", var_name);
+          error(error_msg, __FILE__, __LINE__, __func__);
         }
-      } else {
-        printf("Expected a definition in the imported file, but got %c\n", imported_tkn);
-        exit(1);
       }
     }
     return;
@@ -370,42 +363,24 @@ void parse_import(HashTable *table, FILE *in) {
 
 void parse_definition(HashTable *table, FILE *in) {
   // at this moment the "def" string was already parsed
-  char next_token = next(in);
-  tokens_t n = parse_token(next_token);
-  if (n != WHITESPACE) {
-    expect(" ", next_token);
-    exit(EXIT_FAILURE);
-  }
+  char next_token;
+  tokens_t n;
+
+  consume(WHITESPACE, in, "a whitespace");
 
   next_token = next(in);
   n = parse_token(next_token);
-
   if (n != VARIABLE) {
     expect("a variable", next_token);
-    exit(EXIT_FAILURE);
   }
+
   char *def_name = parse_variable(in, next_token);
 
-  next_token = next(in);
-  n = parse_token(next_token);
-  if (n != WHITESPACE) {
-    expect(" ", next_token);
-    exit(EXIT_FAILURE);
-  }
+  consume(WHITESPACE, in, "a whitespace");
 
-  next_token = next(in);
-  n = parse_token(next_token);
-  if (n != EQ) {
-    expect("=", next_token);
-    exit(EXIT_FAILURE);
-  }
+  consume(EQ, in, "=");
 
-  next_token = next(in);
-  n = parse_token(next_token);
-  if (n != WHITESPACE) {
-    expect(" ", next_token);
-    exit(EXIT_FAILURE);
-  }
+  consume(WHITESPACE, in, "a whitespace");
 
   AstNode *definition = parse_expression(table, in, next(in));
   insert(table, def_name, definition);

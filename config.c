@@ -1,4 +1,5 @@
 #include "config.h"
+#include "common.h"
 #include "io.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -31,17 +32,18 @@ option_type_t get_config_type(char *key) {
   } else if (strcmp(key, "reduction_order") == 0) {
     return REDUCTION_ORDER;
   } else {
-    fprintf(stderr, "ERROR: Invalid key '%s' at config file.", key);
-    exit(EXIT_FAILURE);
+    const char *error_msg = format("ERROR: Invalid key '%s' at config file.", key);
+    error(error_msg, __FILE__, __LINE__, __func__);
   }
+  return ERROR;
 }
 
 void parse_config(char *line, char **key, char **value) {
   char *eq_pos = strchr(line, '=');
   if (eq_pos == NULL) {
-    fprintf(stderr, "Malformed config file at line: %s . Expected = sign.\n",
-            line);
-    exit(EXIT_FAILURE);
+    const char *error_msg = format("Malformed config file at line: %s . Expected = sign.\n",
+                line);
+    error(error_msg, __FILE__, __LINE__, __func__);
   }
   *key = strtok(line, "=");
   trim(*key);
@@ -86,16 +88,20 @@ Options get_config_from_file() {
         options.reduction_order = NORMAL;
         break;
       } else {
-        fprintf(stderr, "ERROR: reduction order in cfg file should be 'normal' "
-                        "or 'applicative'.\n");
-        exit(EXIT_FAILURE);
+        const char *error_msg = "ERROR: reduction order in cfg file should be 'normal' "
+                                "or 'applicative'.";
+        error(error_msg, __FILE__, __LINE__, __func__);
       }
+    }
+    case CONFIG_ERROR: {
+      const char *error_msg = format("Unrecognized key: %s", key);
+      error(error_msg, __FILE__, __LINE__, __func__);
     }
     }
   }
   if (options.file == NULL) {
-    fprintf(stderr, "ERROR: File cannot be null in cfg file.\n");
-    exit(EXIT_FAILURE);
+    const char *error_msg = "ERROR: File cannot be null in cfg file.\n";
+    error(error_msg, __FILE__, __LINE__, __func__);
   }
   return options;
 }
