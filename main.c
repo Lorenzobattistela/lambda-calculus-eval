@@ -3,6 +3,7 @@
 #include "io.h"
 #include "parser.h"
 #include "reducer.h"
+#include "typechecker.h"
 #include <stdio.h>
 
 #define MAX_LAMBDA_LENGTH 1000
