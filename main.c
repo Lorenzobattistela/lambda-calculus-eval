@@ -15,9 +15,8 @@ char *get_str_input(char *input_msg, char *error_msg) {
   printf("%s", input_msg);
 
   if (fgets(input, MAX_LAMBDA_LENGTH + 1, stdin) == NULL) {
-    fprintf(stderr, "%s\n", error_msg);
     free(input);
-    exit(EXIT_FAILURE);
+    error(error_msg, __FILE__, __LINE__, __func__);
   }
 
   size_t len = strlen(input);
@@ -31,7 +30,7 @@ char *get_str_input(char *input_msg, char *error_msg) {
 char *get_lambda_expr_input() {
   char *lambda_expr =
       get_str_input("Enter the lambda expression: ",
-                    "ERROR: failed to read the lambda expression.");
+                    "failed to read the lambda expression.");
 
   FILE *file = create_file(TMP_PATH);
   write_to_file(file, lambda_expr);
@@ -41,7 +40,7 @@ char *get_lambda_expr_input() {
 
 char *get_file_path_input() {
   char *file_path = get_str_input("Enter the file path for your expression: ",
-                                  "ERROR: failed to read file path.");
+                                  "failed to read file path.");
   return file_path;
 }
 
