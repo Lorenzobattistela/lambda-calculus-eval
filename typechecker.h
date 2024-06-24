@@ -6,20 +6,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Type environment
+typedef struct Type {
+  AstNode *expr;
+  char *type;
+  char *return_type;
+} Type;
+
 typedef struct TypeEnv {
-    char *var_name;
-    char *type;
-    struct TypeEnv *next;
+  Type *type;
+  struct TypeEnv *next;
 } TypeEnv;
 
-// Function prototypes
-char *check_type(AstNode *node, TypeEnv *env);
-char *check_lambda(LambdaExpression *lambda, TypeEnv *env);
-char *check_application(Application *app, TypeEnv *env);
-char *check_variable(Variable *var, TypeEnv *env);
-void add_to_env(TypeEnv **env, char *var_name, char *type);
-char *lookup_type(TypeEnv *env, char *var_name);
-
+Type *typecheck(AstNode *expr, TypeEnv *env);
+bool type_equal(Type *a, Type *b);
+void add_to_env(TypeEnv **env, Type *type);
+Type *lookup_type(TypeEnv *env, AstNode *expr);
+Type *parse_function_type(char *type);
+void assert(bool expr, char *error_msg)
 
 #endif
