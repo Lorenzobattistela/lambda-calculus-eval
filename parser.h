@@ -13,7 +13,7 @@
 
 tokens_t parse_token(char token);
 void parse_type_definition(HashTable *types_table, FILE *in);
-char *parse_type(HashTable *types_table, FILE *in, tokens_t token);
+char *parse_type(HashTable *types_table, FILE *in);
 void parse_import(HashTable *table, FILE *in);
 bool is_variable(char token);
 void p_print_astNode_type(AstNode *n);

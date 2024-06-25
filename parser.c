@@ -248,18 +248,16 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
   parse_space_chars(in);
 
   consume(COLON, in, ":");
-  
+
   parse_space_chars(in);
 
-  // FIXME
-  char type_c = next(in);
   if (parse_token(peek(in)) != VARIABLE) {
-    expect("Lambda abstractions should be typed.", type_c);
+    error("Lambda abstractions should be typed.", __FILE__, __LINE__, __func__);
   }
-  char *type = parse_type(table, in, type_c);
+  char *type = parse_type(table, in);
 
   consume(DOT, in, ".");
-  
+
   AstNode *body = parse_expression(table, in);
 
   if (new_var != NULL) {
@@ -344,11 +342,12 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
     // so if it does not exist, it is a constant and should be typed
     if (!table_exists(table, var_name)) {
       if (parse_token(peek(in)) != COLON) {
-        printf("Constant Variable %s is not typed. Please provide a type.\n", var_name);
-        exit(1);
+        const char *error_msg = format("Constant Variable %s is not typed. Please provide a type.\n", var_name);
+        error(error_msg, __FILE__, __LINE__, __func__);
       }
+      consume(COLON, in, ":");
       parse_space_chars(in);
-      type = parse_type(table, in, next(in));
+      type = parse_type(table, in);
     }
 
     AstNode *variable = create_variable(var_name, type);
@@ -455,7 +454,7 @@ void parse_type_definition(HashTable *types_table, FILE *in) {
     expect(" ", next_token);
   }
 
-  next_token = next(in);
+  next_token = peek(in);
   n = parse_token(next_token);
   if (n != VARIABLE) {
     expect("a type definition", next_token);
@@ -474,14 +473,14 @@ void parse_type_definition(HashTable *types_table, FILE *in) {
   insert(types_table, type_name, NULL);
 }
 
-char *parse_type(HashTable *types_table, FILE *in, tokens_t token) {
+char *parse_type(HashTable *types_table, FILE *in) {
   // here we already parsed the : symbol and the whitespace after
   char *type_name = malloc(256 * sizeof(char));
   int index = 0;
+  char token = next(in);
 
   if (!is_uppercase(token)) {
-    printf("Types should start with uppercase letter!\n");
-    exit(EXIT_FAILURE);
+    error("Types should start with an uppercase letter.", __FILE__, __LINE__, __func__);
   }
 
   type_name[index] = token;
@@ -493,10 +492,9 @@ char *parse_type(HashTable *types_table, FILE *in, tokens_t token) {
   }
 
   if (!table_exists(types_table, type_name)) {
-    printf("Type %s was not defined.\n", type_name);
-    exit(EXIT_FAILURE);
+    const char *error_msg = format("Type %s was not defined.\n", type_name);
+    error(error_msg, __FILE__, __LINE__, __func__);
   }
-  printf("Parsed the type %s\n", type_name);
   return type_name;
 }
 

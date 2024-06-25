@@ -1,9 +1,5 @@
-#include "typechecker.h"
 #include "common.h"
-#include <cstdio>
-#include <cstdlib>
-#include <stdbool.h>
-#include <string.h>
+#include "typechecker.h"
 
 // at this point, when the typcheck occurs, we have a parsed AST
 // containing definitions, types and a huge lambda expression to typecheck
@@ -31,7 +27,6 @@
 // so @x : Nat. (x b : Nat)
 
 void assert(bool expr, char *error_msg) {
-  // TODO: call error() when refactor
   if (expr) return;
   fprintf(stderr, "%s", error_msg);
 }
@@ -59,9 +54,10 @@ Type *typecheck(AstNode *expr, TypeEnv *env) {
     }
     return t;
   }
+  return NULL;
 }
 
-bool typecheck_equal(Type *a, Type *b) {
+bool type_equal(Type *a, Type *b) {
   if (a == NULL || b == NULL) {
     return false;
   }
@@ -76,6 +72,10 @@ char *get_type_from_expr(AstNode *expr) {
   } else if (expr->type == LAMBDA_EXPR) {
     return expr->node.lambda_expr->type;
   }
+  return NULL;
+}
+
+Type *parse_function_type(char *type) {
   return NULL;
 }
 
