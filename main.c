@@ -145,7 +145,7 @@ int main(void) {
   HANDLE_NULL(in);
   HashTable *table = createHashTable();
 
-  AstNode *parsed = parse_expression(table, in, next(in));
+  AstNode *parsed = parse_expression(table, in);
   AstNode *reduced = reduce(table, parsed);
   printf("\nReduced ast:\n");
   char *reduced_ast_str = ast_to_string(reduced);

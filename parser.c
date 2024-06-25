@@ -176,14 +176,10 @@ AstNode *create_lambda(char *variable, AstNode *body) {
   return lambda;
 }
 
-
-
 // Alpha conversion -> if we have two lambda expressions with same variable
 // name, change one of them to create a new variable: (@x.xx)(@x.x) ->
 // (@x.xx)(@y.y) or -> (@x.xx)(@x'.x')
-
 // Beta reduction: substitution -> we have to look for scope (@x.xy)z => zy
-
 // Eta Conversion / reduction -> Converts between @x.(f x) and f whenever x does
 // not appear free in f which means @x.(f x) = f if f does not make use of x
 // @x.(@y.yy)x) is equivalent to (@y.yy) because f does not make use of x.
@@ -210,15 +206,16 @@ bool is_used(HashTable *table, char *variable) {
   return table_exists(table, variable);
 }
 
-
 AstNode *parse_lambda(HashTable *table, FILE *in) {
-  char parameter = next(in);
-  tokens_t param = parse_token(parameter);
-  if (param != VARIABLE) {
+  char parameter;
+  tokens_t param;
+  p_print_token(parse_token(peek(in)));
+
+  if (parse_token(peek(in)) != VARIABLE) {
     expect("A variable", parameter);
   }
 
-  char *var = parse_variable(in, parameter);
+  char *var = parse_variable(in);
   char *new_var = NULL;
   if (is_used(table, var)) {
     if (search(table, var) != NULL) {
@@ -233,7 +230,7 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
 
   consume(DOT, in, ".");
 
-  AstNode *body = parse_expression(table, in, next(in));
+  AstNode *body = parse_expression(table, in);
   if (new_var != NULL) {
     replace(body, var, new_var);
     print_verbose("Alpha converted %s to %s\n", var, new_var);
@@ -242,23 +239,28 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
   return create_lambda(var, body);
 }
 
-AstNode *parse_expression(HashTable *table, FILE *in, char token) {
-  while (parse_token(token) == WHITESPACE || parse_token(token) == NEWLINE) {
-    token = next(in);
+AstNode *parse_expression(HashTable *table, FILE *in) {
+  while (parse_token(peek(in)) == WHITESPACE || parse_token(peek(in)) == NEWLINE) {
+    next(in);
   }
-  tokens_t scanned = parse_token(token);
+  tokens_t scanned = parse_token(peek(in));
+  printf("Parsing expression token: ");
+  p_print_token(scanned);
 
   if (scanned == LAMBDA) {
+    next(in);
     return parse_lambda(table, in);
   }
 
   else if (scanned == L_PAREN) {
-    AstNode *expr = parse_expression(table, in, next(in));
-    char next_t = next(in);
+    // advance();
+    next(in);
+    AstNode *expr = parse_expression(table, in);
+    tokens_t next_token = parse_token(peek(in));
+
     // if it is a whitespace, it is a function application
-    tokens_t next_token = parse_token(next_t);
     if (next_token == WHITESPACE) {
-      AstNode *expr_2 = parse_expression(table, in, next(in));
+      AstNode *expr_2 = parse_expression(table, in);
       AstNode *application = (AstNode *)malloc(sizeof(AstNode));
       application->type = APPLICATION;
       application->node.application =
@@ -277,18 +279,18 @@ AstNode *parse_expression(HashTable *table, FILE *in, char token) {
   }
 
   else if (scanned == VARIABLE) {
-    char *var_name = parse_variable(in, token);
+    char *var_name = parse_variable(in);
 
     if (strcmp(var_name, "def") == 0) {
       parse_definition(table, in);
       if (peek(in) != EOF) {
-        return parse_expression(table, in, next(in));
+        return parse_expression(table, in);
       }
       return NULL;
     } else if (strcmp(var_name, "import") == 0) {
       parse_import(table, in);
       if (peek(in) != EOF) {
-        return parse_expression(table, in, next(in));
+        return parse_expression(table, in);
       }
     }
 
@@ -342,14 +344,14 @@ void parse_import(HashTable *table, FILE *in) {
     HANDLE_NULL(imported_file);
 
     char imported_tkn;
-    while ((imported_tkn = next(imported_file)) != EOF) {
+    while ((imported_tkn = peek(imported_file)) != EOF) {
       tokens_t scanned = parse_token(imported_tkn);
       while (scanned == WHITESPACE || scanned == NEWLINE) {
         imported_tkn = next(imported_file);
         scanned = parse_token(imported_tkn);
       }
       if (scanned == VARIABLE) {
-        char *var_name = parse_variable(imported_file, imported_tkn);
+        char *var_name = parse_variable(imported_file);
         if (strcmp(var_name, "def") == 0) {
           parse_definition(table, imported_file);
         } else {
@@ -368,13 +370,11 @@ void parse_definition(HashTable *table, FILE *in) {
 
   consume(WHITESPACE, in, "a whitespace");
 
-  next_token = next(in);
-  n = parse_token(next_token);
-  if (n != VARIABLE) {
+  if (parse_token(peek(in)) != VARIABLE) {
     expect("a variable", next_token);
   }
 
-  char *def_name = parse_variable(in, next_token);
+  char *def_name = parse_variable(in);
 
   consume(WHITESPACE, in, "a whitespace");
 
@@ -382,15 +382,13 @@ void parse_definition(HashTable *table, FILE *in) {
 
   consume(WHITESPACE, in, "a whitespace");
 
-  AstNode *definition = parse_expression(table, in, next(in));
+  AstNode *definition = parse_expression(table, in);
   insert(table, def_name, definition);
 }
 
-char *parse_variable(FILE *in, tokens_t token) {
+char *parse_variable(FILE *in) {
   char *variable_name = malloc(256 * sizeof(char));
   int index = 0;
-  variable_name[index] = token;
-  index++;
 
   while (is_variable(peek(in))) {
     variable_name[index] = next(in);
