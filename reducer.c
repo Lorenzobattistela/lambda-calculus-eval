@@ -124,12 +124,12 @@ AstNode *substitute(AstNode *expression, char *variable, AstNode *replacement) {
 
 AstNode *deepcopy(AstNode *n) {
   if (n->type == VAR) {
-    return deepcopy_var(n->node.variable->name);
+    return deepcopy_var(n->node.variable->name, n->node.variable->type);
   }
 
   else if (n->type == LAMBDA_EXPR) {
     return deepcopy_lambda_expr(n->node.lambda_expr->parameter,
-                                n->node.lambda_expr->body);
+                                n->node.lambda_expr->body, n->node.lambda_expr->type);
   }
 
   else if (n->type == APPLICATION) {
@@ -148,20 +148,22 @@ AstNode *deepcopy_application(AstNode *function, AstNode *argument) {
   return application;
 }
 
-AstNode *deepcopy_lambda_expr(char *parameter, AstNode *body) {
+AstNode *deepcopy_lambda_expr(char *parameter, AstNode *body, char *type) {
   AstNode *lambda = (AstNode *)malloc(sizeof(AstNode));
   lambda->type = LAMBDA_EXPR;
   lambda->node.lambda_expr =
       (LambdaExpression *)malloc(sizeof(LambdaExpression));
   lambda->node.lambda_expr->parameter = parameter;
+  lambda->node.lambda_expr->type = type;
   lambda->node.lambda_expr->body = deepcopy(body);
   return lambda;
 }
 
-AstNode *deepcopy_var(char *name) {
+AstNode *deepcopy_var(char *name, char *type) {
   AstNode *variable = (AstNode *)malloc(sizeof(AstNode));
   variable->type = VAR;
   variable->node.variable = (Variable *)malloc(sizeof(Variable));
   variable->node.variable->name = name;
+  variable->node.variable->type = type;
   return variable;
 }

@@ -5,8 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-static int n = 1;
-
 static bool verbose_mode = false;
 
 void set_verbose(bool verbose) {
@@ -79,7 +77,9 @@ void append_ast_to_buffer(char **buffer, size_t *buffer_size, size_t *length, As
         case LAMBDA_EXPR:
             append_to_buffer(buffer, buffer_size, length, "(@");
             append_to_buffer(buffer, buffer_size, length, node->node.lambda_expr->parameter);
-            append_to_buffer(buffer, buffer_size, length, ".");
+            append_to_buffer(buffer, buffer_size, length, " : ");
+            append_to_buffer(buffer, buffer_size, length, node->node.lambda_expr->type);
+            append_to_buffer(buffer, buffer_size, length, " .");
             append_ast_to_buffer(buffer, buffer_size, length, node->node.lambda_expr->body);
             append_to_buffer(buffer, buffer_size, length, ") ");
             break;
@@ -94,6 +94,10 @@ void append_ast_to_buffer(char **buffer, size_t *buffer_size, size_t *length, As
         case VAR:
             append_to_buffer(buffer, buffer_size, length, "(");
             append_to_buffer(buffer, buffer_size, length, node->node.variable->name);
+            if (node->node.variable->type != NULL) {
+              append_to_buffer(buffer, buffer_size, length, " : ");
+              append_to_buffer(buffer, buffer_size, length, node->node.variable->type);
+            }
             append_to_buffer(buffer, buffer_size, length, ") ");
             break;
 

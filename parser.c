@@ -27,6 +27,8 @@ tokens_t parse_token(char token) {
     return EQ;
   } else if (token == '"') {
     return QUOTE;
+  } else if (token == ':') {
+    return COLON;
   }
   return ERROR;
 }
@@ -98,7 +100,7 @@ void print_ast(AstNode *node) {
 
   switch (node->type) {
   case LAMBDA_EXPR:
-    printf("(LAMBDA %s ", node->node.lambda_expr->parameter);
+    printf("(LAMBDA %s : %s", node->node.lambda_expr->parameter, node->node.lambda_expr->type);
     print_ast(node->node.lambda_expr->body);
     printf(") ");
     break;
@@ -111,7 +113,11 @@ void print_ast(AstNode *node) {
     break;
 
   case VAR:
-    printf("(VAR %s) ", node->node.variable->name);
+    printf("(VAR %s ", node->node.variable->name);
+    if (node->node.variable->type != NULL) {
+      printf(": %s", node->node.variable->type);
+    }
+    printf(")");
     break;
 
   case DEFINITION:
@@ -126,16 +132,36 @@ void print_ast(AstNode *node) {
 bool is_variable(char token) {
   int cmp = (int)token;
   if (cmp == '_') return true;
-  if (cmp < 97 || cmp > 122) {
-    return false;
+  if ((cmp >= 97 && cmp <= 122) || (cmp >= 65 && cmp <= 90)) {
+    return true;
   }
-  return true;
+  return false;
 }
 
 char peek(FILE *in) {
   char c = fgetc(in);
   ungetc(c, in);
   return c;
+}
+
+void peek_print(FILE *in, int n) {
+    char buffer[n + 1];
+    int i;
+
+    for (i = 0; i < n; i++) {
+        int c = fgetc(in);
+        if (c == EOF) {
+            break;
+        }
+        buffer[i] = (char)c;
+    }
+    buffer[i] = '\0';
+
+    printf("%s", buffer);
+
+    for (i--; i >= 0; i--) {
+        ungetc(buffer[i], in);
+    }
 }
 
 void consume(tokens_t t, FILE *in, char *expected) {
@@ -146,12 +172,13 @@ void consume(tokens_t t, FILE *in, char *expected) {
   }
 }
 
-AstNode *create_variable(char *name) {
+AstNode *create_variable(char *name, char *type) {
   AstNode *var = (AstNode *)malloc(sizeof(AstNode));
   HANDLE_NULL(var);
   var->type = VAR;
   var->node.variable = (Variable *)malloc(sizeof(Variable));
   var->node.variable->name = name;
+  var->node.variable->type = type;
   return var;
 }
 
@@ -165,7 +192,7 @@ AstNode *create_application(AstNode *function, AstNode *argument) {
   return app;
 }
 
-AstNode *create_lambda(char *variable, AstNode *body) {
+AstNode *create_lambda(char *variable, AstNode *body, char *type) {
   AstNode *lambda = (AstNode *)malloc(sizeof(AstNode));
   HANDLE_NULL(lambda);
   lambda->type = LAMBDA_EXPR;
@@ -173,6 +200,7 @@ AstNode *create_lambda(char *variable, AstNode *body) {
       (LambdaExpression *)malloc(sizeof(LambdaExpression));
   lambda->node.lambda_expr->parameter = variable;
   lambda->node.lambda_expr->body = body;
+  lambda->node.lambda_expr->type = type;
   return lambda;
 }
 
@@ -206,10 +234,18 @@ bool is_used(HashTable *table, char *variable) {
   return table_exists(table, variable);
 }
 
+
+void parse_space_chars(FILE *in) {
+  char c = peek(in);
+  while (c == ' ' || c == '\n' || c == '\t') {
+    next(in);
+    c = peek(in);
+  }
+}
+
 AstNode *parse_lambda(HashTable *table, FILE *in) {
   char parameter;
   tokens_t param;
-  p_print_token(parse_token(peek(in)));
 
   if (parse_token(peek(in)) != VARIABLE) {
     expect("A variable", parameter);
@@ -228,15 +264,27 @@ AstNode *parse_lambda(HashTable *table, FILE *in) {
     insert(table, var, NULL);
   }
 
+  parse_space_chars(in);
+
+  consume(COLON, in, ":");
+
+  parse_space_chars(in);
+
+  if (parse_token(peek(in)) != VARIABLE) {
+    error("Lambda abstractions should be typed.", __FILE__, __LINE__, __func__);
+  }
+  char *type = parse_type(table, in);
+
   consume(DOT, in, ".");
 
   AstNode *body = parse_expression(table, in);
+
   if (new_var != NULL) {
     replace(body, var, new_var);
     print_verbose("Alpha converted %s to %s\n", var, new_var);
-    return create_lambda(new_var, body);
+    return create_lambda(new_var, body, type);
   }
-  return create_lambda(var, body);
+  return create_lambda(var, body, type);
 }
 
 AstNode *parse_expression(HashTable *table, FILE *in) {
@@ -244,8 +292,11 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
     next(in);
   }
   tokens_t scanned = parse_token(peek(in));
-  printf("Parsing expression token: ");
-  p_print_token(scanned);
+
+  if (scanned == ERROR) {
+    printf("Error: %c is  a valid token\n", peek(in));
+    exit(1);
+  }
 
   if (scanned == LAMBDA) {
     next(in);
@@ -256,6 +307,8 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
     // advance();
     next(in);
     AstNode *expr = parse_expression(table, in);
+
+    print_ast(expr);
     tokens_t next_token = parse_token(peek(in));
 
     // if it is a whitespace, it is a function application
@@ -272,9 +325,7 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
 
       return application;
     }
-
     consume(R_PAREN, in, ")");
-
     return expr;
   }
 
@@ -292,9 +343,31 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
       if (peek(in) != EOF) {
         return parse_expression(table, in);
       }
+    } else if (strcmp(var_name, "type") == 0) {
+      parse_type_definition(table, in);
+      if (peek(in) != EOF) {
+        return parse_expression(table, in);
+      }
     }
 
-    AstNode *variable = create_variable(var_name);
+    // parse variable type
+    char *type = NULL;
+
+    parse_space_chars(in);
+    // if a variable is in our table, it means its used as a bound in lambda abstraction
+    // therefore should not be typed (because the lambda already type it)
+    // so if it does not exist, it is a constant and should be typed
+    if (!table_exists(table, var_name)) {
+      if (parse_token(peek(in)) != COLON) {
+        const char *error_msg = format("Constant Variable %s is not typed. Please provide a type.\n", var_name);
+        error(error_msg, __FILE__, __LINE__, __func__);
+      }
+      consume(COLON, in, ":");
+      parse_space_chars(in);
+      type = parse_type(table, in);
+    }
+
+    AstNode *variable = create_variable(var_name, type);
     if (search(table, var_name) != NULL) {
       variable->type = DEFINITION;
     }
@@ -346,14 +419,13 @@ void parse_import(HashTable *table, FILE *in) {
     char imported_tkn;
     while ((imported_tkn = peek(imported_file)) != EOF) {
       tokens_t scanned = parse_token(imported_tkn);
-      while (scanned == WHITESPACE || scanned == NEWLINE) {
-        imported_tkn = next(imported_file);
-        scanned = parse_token(imported_tkn);
-      }
+      parse_space_chars(imported_file);
       if (scanned == VARIABLE) {
         char *var_name = parse_variable(imported_file);
         if (strcmp(var_name, "def") == 0) {
           parse_definition(table, imported_file);
+        } else if (strcmp(var_name, "type") == 0) {
+          parse_type_definition(table, imported_file);
         } else {
           const char *error_msg = format("Expected a definition in the imported file, but got %s\n", var_name);
           error(error_msg, __FILE__, __LINE__, __func__);
@@ -384,6 +456,61 @@ void parse_definition(HashTable *table, FILE *in) {
 
   AstNode *definition = parse_expression(table, in);
   insert(table, def_name, definition);
+}
+
+bool is_uppercase(char c) {
+  return c >= 'A' && c <= 'Z';
+}
+
+void parse_type_definition(HashTable *types_table, FILE *in) {
+  // at this point we already parsed the word "type"
+  char next_token = next(in);
+  tokens_t n = parse_token(next_token);
+  if (n != WHITESPACE) {
+    expect(" ", next_token);
+  }
+
+  next_token = peek(in);
+  n = parse_token(next_token);
+  if (n != VARIABLE) {
+    expect("a type definition", next_token);
+  }
+
+  if (!is_uppercase(next_token)) {
+    error("Type names must start with an uppercase letter", __FILE__, __LINE__, __func__);
+  }
+
+  char *type_name = parse_variable(in);
+  if (table_exists(types_table, type_name)) {
+    const char *error_msg = format("Type %s was already defined.\n", type_name);
+    error(error_msg, __FILE__, __LINE__, __func__);
+  }
+  insert(types_table, type_name, NULL);
+}
+
+char *parse_type(HashTable *types_table, FILE *in) {
+  // here we already parsed the : symbol and the whitespace after
+  char *type_name = malloc(256 * sizeof(char));
+  int index = 0;
+  char token = next(in);
+
+  if (!is_uppercase(token)) {
+    error("Types should start with an uppercase letter.", __FILE__, __LINE__, __func__);
+  }
+
+  type_name[index] = token;
+  index++;
+
+  while (is_variable(peek(in))) {
+    type_name[index] = next(in);
+    index++;
+  }
+
+  if (!table_exists(types_table, type_name)) {
+    const char *error_msg = format("Type %s was not defined.\n", type_name);
+    error(error_msg, __FILE__, __LINE__, __func__);
+  }
+  return type_name;
 }
 
 char *parse_variable(FILE *in) {

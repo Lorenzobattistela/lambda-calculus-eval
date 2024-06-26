@@ -1,1 +1,2 @@
-def a = @x.x
+type Bool
+def a = (@x : Bool.(x))
