@@ -1,4 +1,6 @@
 #include "common.h"
+#include "parser.h"
+#include <stdbool.h>
 #include "typechecker.h"
 
 // at this point, when the typcheck occurs, we have a parsed AST
@@ -28,30 +30,28 @@
 
 void assert(bool expr, char *error_msg) {
   if (expr) return;
-  fprintf(stderr, "%s", error_msg);
+  error(error_msg, __FILE__, __LINE__, __func__);
 }
 
 Type *typecheck(AstNode *expr, TypeEnv *env) {
   if(expr->type == VAR) {
-    Type *t = lookup_type(env, expr);
-    if (t == NULL) {
-      fprintf(stderr, "VARIABLE TYPE IS NULL.");
-      exit(EXIT_FAILURE);
-    }
+    char *type = get_type_from_expr(expr);
+    Type *t = create_type(type, NULL, expr);
+    add_to_env(&env, t);
     return t;
   } else if (expr->type == APPLICATION) {
     // need to typecheck the func and the arg, we also have to "expect" some types eq to others
     Type *func_type = typecheck(expr->node.application->function, env);
     Type *arg_type = typecheck(expr->node.application->argument, env);
 
-    assert(type_equal(func_type, arg_type), "Argument type should match function needed type.");
-
+    assert(type_equal(func_type, arg_type), "Type mismatch.");
+    // TODO: This should return the return_type of func_type, for now we assume functions are always pure and return values w simple types
+    return func_type;
   } else if (expr->type == LAMBDA_EXPR) {
-    Type *t = lookup_type(env, expr);
-    if (t == NULL) {
-      fprintf(stderr, "LAMBDA EXPR TYPE IS NULL.");
-      exit(EXIT_FAILURE);
-    }
+    char *type = get_type_from_expr(expr);
+    // TODO: Fix me for function types
+    Type *t = create_type(type, NULL, expr);
+    add_to_env(&env, t);
     return t;
   }
   return NULL;
@@ -62,7 +62,15 @@ bool type_equal(Type *a, Type *b) {
     return false;
   }
   bool type_eql = strcmp(a->type, b->type) == 0;
-  bool return_eql = strcmp(a->return_type, b->return_type) == 0;
+
+  bool return_eql = false;
+  if (a->return_type == NULL && b->return_type == NULL) {
+    return_eql = true;
+  } else if (a->return_type == NULL || b->return_type == NULL) {
+    return_eql = false;
+  } else {
+    return_eql = strcmp(a->return_type, b->return_type) == 0;
+  }
   return type_eql && return_eql;
 }
 
@@ -75,8 +83,35 @@ char *get_type_from_expr(AstNode *expr) {
   return NULL;
 }
 
+void p_print_type(Type *t) {
+  if (t == NULL) {
+    printf("(type null)\n");
+    return;
+  }
+  if (t->type != NULL) {
+    printf("Type: %s\n", t->type);
+  }
+  if (t->return_type != NULL) {
+    printf("Return type: %s\n", t->return_type);
+  }
+}
+
+Type *create_type(char *type, char *return_type, AstNode *expr) {
+  Type *t = malloc(sizeof(Type));
+  HANDLE_NULL(t);
+  t->return_type = return_type;
+  t->type = type;
+  t->expr = expr;
+  return t;
+}
+
 Type *parse_function_type(char *type) {
-  return NULL;
+  Type *t = malloc(sizeof(Type));
+  HANDLE_NULL(t);
+  t->return_type = NULL;
+  t->type = type;
+  t->expr = NULL;
+  return t;
 }
 
 bool expr_type_equal(Type *t, AstNode *expr) {
