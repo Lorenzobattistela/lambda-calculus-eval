@@ -1,4 +1,5 @@
 #include "./hash-table/hash_table.h"
+#include "common.h"
 #include "config.h"
 #include "io.h"
 #include "parser.h"
@@ -147,6 +148,12 @@ int main(void) {
   HashTable *table = createHashTable();
 
   AstNode *parsed = parse_expression(table, in);
+  printf("\nPARSED AST: \n");
+  print_ast(parsed);
+  print_verbose("\nTYPECHECKING --------------------------------------------------------------\n");
+  typecheck(parsed, NULL);
+  print_verbose("TYPECHECKING DONE! PROCEEDING TO REDUCE.");
+
   AstNode *reduced = reduce(table, parsed);
   printf("\nReduced ast:\n");
   char *reduced_ast_str = ast_to_string(reduced);
