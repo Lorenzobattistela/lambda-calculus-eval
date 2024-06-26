@@ -144,6 +144,26 @@ char peek(FILE *in) {
   return c;
 }
 
+void peek_print(FILE *in, int n) {
+    char buffer[n + 1];
+    int i;
+
+    for (i = 0; i < n; i++) {
+        int c = fgetc(in);
+        if (c == EOF) {
+            break;
+        }
+        buffer[i] = (char)c;
+    }
+    buffer[i] = '\0';
+
+    printf("%s", buffer);
+
+    for (i--; i >= 0; i--) {
+        ungetc(buffer[i], in);
+    }
+}
+
 void consume(tokens_t t, FILE *in, char *expected) {
   char c = next(in);
   tokens_t p = parse_token(c);
@@ -226,7 +246,6 @@ void parse_space_chars(FILE *in) {
 AstNode *parse_lambda(HashTable *table, FILE *in) {
   char parameter;
   tokens_t param;
-  p_print_token(parse_token(peek(in)));
 
   if (parse_token(peek(in)) != VARIABLE) {
     expect("A variable", parameter);
@@ -273,11 +292,9 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
     next(in);
   }
   tokens_t scanned = parse_token(peek(in));
-  printf("Parsing expression token: ");
-  p_print_token(scanned);
 
   if (scanned == ERROR) {
-    printf("Error: %c is not a valid token\n");
+    printf("Error: %c is  a valid token\n", peek(in));
     exit(1);
   }
 
@@ -290,6 +307,8 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
     // advance();
     next(in);
     AstNode *expr = parse_expression(table, in);
+
+    print_ast(expr);
     tokens_t next_token = parse_token(peek(in));
 
     // if it is a whitespace, it is a function application
@@ -306,9 +325,7 @@ AstNode *parse_expression(HashTable *table, FILE *in) {
 
       return application;
     }
-
     consume(R_PAREN, in, ")");
-
     return expr;
   }
 
@@ -402,14 +419,13 @@ void parse_import(HashTable *table, FILE *in) {
     char imported_tkn;
     while ((imported_tkn = peek(imported_file)) != EOF) {
       tokens_t scanned = parse_token(imported_tkn);
-      while (scanned == WHITESPACE || scanned == NEWLINE) {
-        imported_tkn = next(imported_file);
-        scanned = parse_token(imported_tkn);
-      }
+      parse_space_chars(imported_file);
       if (scanned == VARIABLE) {
         char *var_name = parse_variable(imported_file);
         if (strcmp(var_name, "def") == 0) {
           parse_definition(table, imported_file);
+        } else if (strcmp(var_name, "type") == 0) {
+          parse_type_definition(table, imported_file);
         } else {
           const char *error_msg = format("Expected a definition in the imported file, but got %s\n", var_name);
           error(error_msg, __FILE__, __LINE__, __func__);
@@ -461,14 +477,13 @@ void parse_type_definition(HashTable *types_table, FILE *in) {
   }
 
   if (!is_uppercase(next_token)) {
-    printf("Type names must start with an uppercase letter\n");
-    exit(EXIT_FAILURE);
+    error("Type names must start with an uppercase letter", __FILE__, __LINE__, __func__);
   }
 
   char *type_name = parse_variable(in);
   if (table_exists(types_table, type_name)) {
-    printf("Type %s was already defined.\n", type_name);
-    exit(EXIT_FAILURE);
+    const char *error_msg = format("Type %s was already defined.\n", type_name);
+    error(error_msg, __FILE__, __LINE__, __func__);
   }
   insert(types_table, type_name, NULL);
 }
