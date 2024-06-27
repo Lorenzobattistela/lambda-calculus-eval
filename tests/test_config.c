@@ -30,7 +30,7 @@ void test_parse_config() {
 }
 
 int main() {
-    printf("Test common ...\t");
+    printf("Test config ...\t");
     test_trim();
     test_get_config_type();
     test_parse_config();
