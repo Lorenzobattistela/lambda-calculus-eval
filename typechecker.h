@@ -26,6 +26,7 @@ Type *lookup_type(TypeEnv *env, AstNode *expr);
 Type *parse_function_type(char *type);
 char *get_type_from_expr(AstNode *expr);
 Type *create_type(char *type, char *return_type, AstNode *expr);
-void assert(bool expr, char *error_msg);
+void assert_(bool expr, char *error_msg);
+bool expr_type_equal(Type *t, AstNode *expr);
 
 #endif

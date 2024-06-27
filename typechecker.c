@@ -1,5 +1,4 @@
 #include "common.h"
-#include "parser.h"
 #include <stdbool.h>
 #include "typechecker.h"
 
@@ -28,7 +27,7 @@
 // how to typecheck a lambda expr? They should specify their param type, so what happens after in the body is not lambdas problem. We got nothing to do
 // so @x : Nat. (x b : Nat)
 
-void assert(bool expr, char *error_msg) {
+void assert_(bool expr, char *error_msg) {
   if (expr) return;
   error(error_msg, __FILE__, __LINE__, __func__);
 }
@@ -44,7 +43,7 @@ Type *typecheck(AstNode *expr, TypeEnv *env) {
     Type *func_type = typecheck(expr->node.application->function, env);
     Type *arg_type = typecheck(expr->node.application->argument, env);
 
-    assert(type_equal(func_type, arg_type), "Type mismatch.");
+    assert_(type_equal(func_type, arg_type), "Type mismatch.");
     // TODO: This should return the return_type of func_type, for now we assume functions are always pure and return values w simple types
     return func_type;
   } else if (expr->type == LAMBDA_EXPR) {

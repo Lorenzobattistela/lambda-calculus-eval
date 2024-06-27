@@ -32,4 +32,6 @@ void parse_config(char *line, char **key, char **value);
 
 Options get_config_from_file();
 
+void trim(char *str);
+
 #endif
