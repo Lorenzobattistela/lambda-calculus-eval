@@ -28,5 +28,8 @@ void free_ast(AstNode *node);
 AstNode *create_variable(char *name, char *type);
 AstNode *create_application(AstNode *function, AstNode *argument);
 AstNode *create_lambda(char *variable, AstNode *body, char *type);
+char *alpha_convert(char *old);
+bool is_used(HashTable *table, char *variable);
+bool is_uppercase(char c);
 
 #endif
