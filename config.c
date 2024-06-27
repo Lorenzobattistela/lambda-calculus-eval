@@ -35,7 +35,7 @@ option_type_t get_config_type(char *key) {
     const char *error_msg = format("ERROR: Invalid key '%s' at config file.", key);
     error(error_msg, __FILE__, __LINE__, __func__);
   }
-  return ERROR;
+  return CONFIG_ERROR;
 }
 
 void parse_config(char *line, char **key, char **value) {
