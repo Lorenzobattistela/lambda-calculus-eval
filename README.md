@@ -1,20 +1,33 @@
 # Lambda Calculus Toy Lang
 
-Toy lambda calculus interpreter.
+This is a toy lambda calculus language written in C!
 
 To test it out, you can simply write a lambda expression such as:
-`(@x.x a)` and run `make` for compilation and `make run` or `./lc` to run the executable.
+```
+type Nat
+(@x : Nat.(x) var : Nat)
+```
 
-Note that it will parse your Lambda Calculus expression and then reduce it.
+In a file such as `expr.lambda`.
 
-Another useful thing you can do is have *definitions*. 
+You can run the evaluator as cli with `./lc`, or create a config file like this one:
+
+```
+file=expr.lambda
+step_by_step_reduction=true
+reduction_order=applicative
+```
+Reduction order can be `applicative` or `normal`.
+
+Another useful thing you can do is have *definitions*.
 Definitions are simply more lambda expressions that you bind to a name.
 Everytime you write the name bound to the definition, before the reduction, the evaluator will expand the definition into its original expanded form. For example, assume a file `expr.lambda`:
 
 ```
-def a = @x.x 
+type Nat
+def a = @x : Nat.x
 
-def b = @y.y
+def b = @y : Nat.y
 
 (a b)
 ```
@@ -23,12 +36,17 @@ It will reduce further to:
 
 `(@x.x @y.y)` => `(@y.y)`
 
-This is a WIP and there are a lot of TODOs to enhance parsing, error handling, usability and reduction steps.
-Some of the TODOs are listed in the end of this file.
+It is possible to import files, but the files imported can ONLY have definitions (type definitions and def statements).
+
+Lambda expressions and unbound variables HAVE to be typed.
+
+The typecheck step is, for now, simple typed, which means we only check if the function (lambda abstraction) type is the same type as its argument.
+
+You can check some examples under the `examples` directory.
 
 ## Syntax Highlighting
 
-It is boring to write lambda expressions in plain white characters.
+It is boring to write lambda expressions in plain uncolored characters.
 
 If you want to highlight your `.lambda` files in `vim`, you can:
 
@@ -36,16 +54,3 @@ If you want to highlight your `.lambda` files in `vim`, you can:
 - Copy syntax and ftdetect individually to `.vim/syntax` and `.vim/ftdetect`
 
 Or use your plugin manage of preference, the two files are really simple.
-
-
-## TODOs
-These are not in order of priority.
-
-- Syntax Highlighting for vscode and tutorial for neovim
-- Completions for common defs (terms, lists, tuples etc)
-- Implement Applicative and normal order (currently just one) option
-- Allow step-by-step reduction through cli to work out the entire reduction (not possible today)
-- Fix name clashes to work with strings as well (and generate x_1)
-- Fix name permissions to allow _ character too
-- Maybe an import system?
-
