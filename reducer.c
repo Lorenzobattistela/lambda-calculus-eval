@@ -2,8 +2,29 @@
 #include "common.h"
 #include "hash-table/hash_table.h"
 #include <stdarg.h>
+#include "config.h"
+
+static reduction_order_t reduction_order = APPLICATIVE;
+
+void set_reduction_order(reduction_order_t t) {
+  reduction_order = t;
+}
+
+void print_reduction_order(reduction_order_t t) {
+  switch (t) {
+    case APPLICATIVE:
+      printf("Applicative");
+      break;
+    case NORMAL:
+      printf("Normal");
+      break;
+  }
+  printf("\n");
+}
 
 AstNode *reduce(HashTable *table, AstNode *n) {
+  print_verbose("Order of reduction is: ");
+  print_reduction_order(reduction_order);
   print_verbose("-------------------------------------------\n");
   expand_definitions(table, n);
   print_verbose("Expanded expression:\n");
@@ -60,7 +81,10 @@ AstNode *reduce_ast(HashTable *table, AstNode *n) {
     AstNode *body = n->node.lambda_expr->body;
 
     // recursively reduce the body
-    n->node.lambda_expr->body = reduce_ast(table, body);
+    // if order is applicative, reduce the body right now
+    if (reduction_order == APPLICATIVE) {
+      n->node.lambda_expr->body = reduce_ast(table, body);
+    }
     return n;
   }
 
@@ -71,7 +95,9 @@ AstNode *reduce_ast(HashTable *table, AstNode *n) {
 
     n->node.application->function = reduce_ast(table, function);
 
-    n->node.application->argument = reduce_ast(table, argument);
+    if (reduction_order == APPLICATIVE) {
+      n->node.application->argument = reduce_ast(table, argument);
+    }
 
     if (n->node.application->function->type == LAMBDA_EXPR) {
       char *param = n->node.application->function->node.lambda_expr->parameter;
@@ -81,7 +107,11 @@ AstNode *reduce_ast(HashTable *table, AstNode *n) {
           n->node.application->argument);
       print_verbose("Applied substitution to lambda expr of parameter <%s> and resulted in:\n", param);
       print_ast_verbose(reduced);
-      return reduced;
+
+      if (reduction_order == APPLICATIVE) {
+        return reduced;
+      }
+      return reduce_ast(table, reduced);
     }
     return n;
   }

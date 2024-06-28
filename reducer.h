@@ -5,10 +5,12 @@
 #include "hash-table/hash_table.h"
 #define SIZE 122
 #include "parser.h"
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+void set_reduction_order(reduction_order_t t);
 AstNode *reduce(HashTable *table, AstNode *n);
 AstNode *reduce_ast(HashTable *table, AstNode *n);
 void expand_definitions(HashTable *table, AstNode *n);
