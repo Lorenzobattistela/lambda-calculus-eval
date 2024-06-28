@@ -70,10 +70,14 @@ void print_ast_verbose(AstNode *n);
 
 void print_verbose(const char *format, ...);
 
-char *ast_to_string(AstNode *node);
+void error(const char *msg, const char *file, int line, const char *func);
 
 char* format(const char *fmt, ...);
 
-void error(const char *msg, const char *file, int line, const char *func);
+void append_to_buffer(char **buffer, size_t *buffer_size, size_t *length, const char *str);
+
+void append_ast_to_buffer(char **buffer, size_t *buffer_size, size_t *length, AstNode *node);
+
+char *ast_to_string(AstNode *node);
 
 #endif

@@ -25,6 +25,7 @@ typedef struct {
   reduction_order_t reduction_order;
 } Options;
 
+void trim(char *str);
 
 option_type_t get_config_type(char *key);
 
@@ -32,6 +33,5 @@ void parse_config(char *line, char **key, char **value);
 
 Options get_config_from_file();
 
-void trim(char *str);
 
 #endif
