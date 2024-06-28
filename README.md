@@ -44,6 +44,8 @@ The typecheck step is, for now, simple typed, which means we only check if the f
 
 You can check some examples under the `examples` directory.
 
+You can also run tests through: `make test`
+
 ## Syntax Highlighting
 
 It is boring to write lambda expressions in plain uncolored characters.
